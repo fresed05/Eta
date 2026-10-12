@@ -1,0 +1,49 @@
+name: Build Russian APK
+
+on:
+  push:
+    branches:
+      - main
+      - feature/russian-localization
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup build environment
+        uses: ./.github/actions/setup-build
+
+      - name: Build Debug APK
+        run: ./gradlew --no-daemon --no-configuration-cache :app:assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eta-Russian-Debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          apk_files=(app/build/outputs/apk/debug/*.apk)
+          if [ ${#apk_files[@]} -eq 0 ]; then
+            echo "No APK found"
+            exit 1
+          fi
+          tag="v-ru-$(date +'%Y%m%d-%H%M%S')"
+          gh release create "$tag" "${apk_files[0]}" \
+            --title "Eta Russian Edition" \
+            --notes "Сборка APK с полной русской локализацией и стандартизацией ресурсов"
