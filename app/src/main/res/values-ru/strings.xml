@@ -1565,4 +1565,15 @@
   <string name="tool_character_memory_get_desc">Доступно только в диалогах с персонажем; считывает долгосрочный сюжет и отношения текущего персонажа.</string>
   <string name="tool_character_memory_write_title">Запись памяти персонажа</string>
   <string name="tool_character_memory_write_desc">Доступно только в диалогах с персонажем; обновляет сюжетную память персонажа, не записывая в реальный MEMORY.md.</string>
+  <string name="todo_panel_title">Активные задачи</string>
+  <string name="todo_panel_all_done">Все задачи выполнены</string>
+  <string name="todo_panel_in_progress">В процессе</string>
+  <string name="context_user_tokens">Пользователь</string>
+  <string name="context_assistant_tokens">Ассистент</string>
+  <string name="context_tool_tokens">Инструменты и система</string>
+  <string name="context_input_tokens">Входные</string>
+  <string name="context_output_tokens">Выходные</string>
+  <string name="context_reasoning_tokens">Рассуждения</string>
+  <string name="context_cached_tokens">Кэш</string>
+  <string name="context_free_tokens">Свободно</string>
 </resources>

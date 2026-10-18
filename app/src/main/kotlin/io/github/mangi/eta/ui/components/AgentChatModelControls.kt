@@ -46,6 +46,12 @@ import io.github.mangi.eta.ui.model.AgentModelOptionUi
 import io.github.mangi.eta.ui.model.AgentModelPickerUiState
 import io.github.mangi.eta.ui.model.defaultExpandedModelProviderIds
 import io.github.mangi.eta.ui.model.formatContextUsage
+import io.github.mangi.eta.ui.model.formatCompactTokenCount
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import java.text.NumberFormat
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -279,11 +285,6 @@ internal fun AgentContextUsageButton(
         noLimitText = stringResource(R.string.context_no_model_limit),
         locale = locale,
     )
-    val detail = when {
-        usage.contextWindow == null -> summary
-        usage.contextTokens == null -> stringResource(R.string.context_usage_after_response)
-        else -> stringResource(R.string.context_usage_previous_response, summary)
-    }
     val usageDescription = stringResource(
         R.string.context_usage_description,
         summary.replace('\n', ' '),
@@ -298,6 +299,7 @@ internal fun AgentContextUsageButton(
                         text = stringResource(R.string.ui_contextual_usage_d12810),
                         color = tooltipColors.titleContentColor,
                         style = MiuixTheme.textStyles.subtitle,
+                        fontWeight = FontWeight.Bold,
                     )
                 },
                 action = if (canCompact) {
@@ -315,15 +317,13 @@ internal fun AgentContextUsageButton(
                             insideMargin = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                         )
                     }
-                } else {
-                    null
-                },
+                } else null,
                 colors = tooltipColors,
             ) {
-                Text(
-                    text = detail,
-                    color = tooltipColors.contentColor,
-                    style = MiuixTheme.textStyles.body2,
+                ContextUsageTooltipDetails(
+                    usage = usage,
+                    locale = locale,
+                    summary = summary,
                 )
             }
         },
@@ -350,6 +350,225 @@ internal fun AgentContextUsageButton(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun ContextUsageTooltipDetails(
+    usage: AgentContextUsageUi,
+    locale: Locale,
+    summary: String,
+) {
+    val totalContext = usage.contextTokens
+    val maxWindow = usage.contextWindow
+
+    if (totalContext == null || maxWindow == null || maxWindow <= 0) {
+        Text(
+            text = when {
+                maxWindow == null -> summary
+                else -> stringResource(R.string.context_usage_after_response)
+            },
+            color = MiuixTheme.colorScheme.onSurface,
+            style = MiuixTheme.textStyles.body2,
+        )
+        return
+    }
+
+    val userTok = usage.userTokens ?: 0
+    val asstTok = usage.assistantTokens ?: 0
+    val toolTok = usage.toolTokens ?: 0
+    val freeTok = (maxWindow - totalContext).coerceAtLeast(0)
+
+    val colorUser = Color(0xFF388AF6)
+    val colorAssistant = Color(0xFF10B981)
+    val colorTools = Color(0xFFF59E0B)
+    val colorFree = MiuixTheme.colorScheme.secondaryContainer
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = summary,
+            color = MiuixTheme.colorScheme.onSurface,
+            style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.Medium,
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(colorFree),
+        ) {
+            if (userTok > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight((userTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
+                        .height(8.dp)
+                        .background(colorUser),
+                )
+            }
+            if (asstTok > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight((asstTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
+                        .height(8.dp)
+                        .background(colorAssistant),
+                )
+            }
+            if (toolTok > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight((toolTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
+                        .height(8.dp)
+                        .background(colorTools),
+                )
+            }
+            if (freeTok > 0) {
+                Box(
+                    modifier = Modifier
+                        .weight((freeTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
+                        .height(8.dp)
+                        .background(colorFree),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)) {
+            UsageDetailRow(
+                color = colorUser,
+                label = stringResource(R.string.context_user_tokens),
+                tokens = userTok,
+                total = maxWindow,
+                locale = locale,
+            )
+            UsageDetailRow(
+                color = colorAssistant,
+                label = stringResource(R.string.context_assistant_tokens),
+                tokens = asstTok,
+                total = maxWindow,
+                locale = locale,
+            )
+            UsageDetailRow(
+                color = colorTools,
+                label = stringResource(R.string.context_tool_tokens),
+                tokens = toolTok,
+                total = maxWindow,
+                locale = locale,
+            )
+            UsageDetailRow(
+                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                label = stringResource(R.string.context_free_tokens),
+                tokens = freeTok,
+                total = maxWindow,
+                locale = locale,
+            )
+        }
+
+        if (usage.inputTokens != null || usage.outputTokens != null || usage.cachedTokens != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MiuixTheme.colorScheme.dividerLine),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            ) {
+                usage.inputTokens?.let {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.context_input_tokens),
+                            style = MiuixTheme.textStyles.footnote,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                        Text(
+                            text = formatCompactTokenCount(it, locale),
+                            style = MiuixTheme.textStyles.body2,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MiuixTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                usage.outputTokens?.let {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.context_output_tokens),
+                            style = MiuixTheme.textStyles.footnote,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                        Text(
+                            text = formatCompactTokenCount(it, locale),
+                            style = MiuixTheme.textStyles.body2,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MiuixTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                usage.cachedTokens?.let { cached ->
+                    Column {
+                        Text(
+                            text = stringResource(R.string.context_cached_tokens),
+                            style = MiuixTheme.textStyles.footnote,
+                            color = StatusSuccess,
+                        )
+                        val cachePctStr = usage.cachePercent?.let { " (${it.toInt()}%)" } ?: ""
+                        Text(
+                            text = "${formatCompactTokenCount(cached, locale)}$cachePctStr",
+                            style = MiuixTheme.textStyles.body2,
+                            fontWeight = FontWeight.SemiBold,
+                            color = StatusSuccess,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UsageDetailRow(
+    color: Color,
+    label: String,
+    tokens: Int,
+    total: Int,
+    locale: Locale,
+) {
+    val pct = if (total > 0) (tokens.toFloat() / total.toFloat()) * 100f else 0f
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(color),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MiuixTheme.textStyles.footnote,
+                color = MiuixTheme.colorScheme.onSurface,
+            )
+        }
+        val pctFormatted = String.format(Locale.US, "%.1f", pct)
+        Text(
+            text = "${formatCompactTokenCount(tokens, locale)} ($pctFormatted%)",
+            style = MiuixTheme.textStyles.footnote,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
     }
 }
 

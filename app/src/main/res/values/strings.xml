@@ -1576,4 +1576,15 @@
   <string name="tool_character_memory_get_desc">Available only in character sessions; reads the current character\'s long-term storylines and relationships.</string>
   <string name="tool_character_memory_write_title">Update Character Memory</string>
   <string name="tool_character_memory_write_desc">Available only in character sessions; updates the character\'s storyline memory without writing to real MEMORY.md.</string>
+  <string name="todo_panel_title">Active Tasks</string>
+  <string name="todo_panel_all_done">All tasks completed</string>
+  <string name="todo_panel_in_progress">In progress</string>
+  <string name="context_user_tokens">User</string>
+  <string name="context_assistant_tokens">Assistant</string>
+  <string name="context_tool_tokens">Tools &amp; System</string>
+  <string name="context_input_tokens">Input</string>
+  <string name="context_output_tokens">Output</string>
+  <string name="context_reasoning_tokens">Reasoning</string>
+  <string name="context_cached_tokens">Cached</string>
+  <string name="context_free_tokens">Free</string>
 </resources>

@@ -37,9 +37,22 @@ internal data class AgentModelOptionUi(
 internal data class AgentContextUsageUi(
     val contextTokens: Int?,
     val contextWindow: Int?,
+    val inputTokens: Int? = null,
+    val outputTokens: Int? = null,
+    val reasoningTokens: Int? = null,
+    val cachedTokens: Int? = null,
+    val userTokens: Int? = null,
+    val assistantTokens: Int? = null,
+    val toolTokens: Int? = null,
+    val systemTokens: Int? = null,
 ) {
     val progress: Float?
         get() = contextUsageProgress(contextTokens, contextWindow)
+
+    val cachePercent: Float?
+        get() = if (inputTokens != null && inputTokens > 0 && cachedTokens != null && cachedTokens > 0) {
+            ((cachedTokens.toFloat() / inputTokens.toFloat()) * 100f).coerceIn(0f, 100f)
+        } else null
 }
 
 internal object AgentModelPickerProjector {
@@ -111,16 +124,20 @@ internal fun latestContextUsage(
     messages: List<AgentChatMessageUi>,
     selectedModel: AgentModelOptionUi?,
 ): AgentContextUsageUi {
+    var latestUsage: TokenUsageUi? = null
     for (message in messages.asReversed()) {
         when (message) {
-            is AgentMessageUi -> message.usage?.contextTokens?.let {
-                return AgentContextUsageUi(it, selectedModel?.contextWindow)
+            is AgentMessageUi -> if (message.usage?.contextTokens != null) {
+                latestUsage = message.usage
+                break
             }
-            is ThinkingMessageUi -> message.usage?.contextTokens?.let {
-                return AgentContextUsageUi(it, selectedModel?.contextWindow)
+            is ThinkingMessageUi -> if (message.usage?.contextTokens != null) {
+                latestUsage = message.usage
+                break
             }
-            is ToolActivityMessageUi -> message.usage?.contextTokens?.let {
-                return AgentContextUsageUi(it, selectedModel?.contextWindow)
+            is ToolActivityMessageUi -> if (message.usage?.contextTokens != null) {
+                latestUsage = message.usage
+                break
             }
             is SystemNoticeMessageUi -> if (message.code == SystemNoticeCode.ContextCompaction) {
                 return AgentContextUsageUi(null, selectedModel?.contextWindow)
@@ -128,7 +145,44 @@ internal fun latestContextUsage(
             else -> Unit
         }
     }
-    return AgentContextUsageUi(null, selectedModel?.contextWindow)
+
+    if (latestUsage == null || latestUsage.contextTokens == null) {
+        return AgentContextUsageUi(null, selectedModel?.contextWindow)
+    }
+
+    var userChars = 0
+    var assistantChars = 0
+    var toolChars = 0
+
+    messages.forEach { msg ->
+        when (msg) {
+            is UserMessageUi -> userChars += msg.content.length
+            is AgentMessageUi -> assistantChars += msg.content.length
+            is ThinkingMessageUi -> assistantChars += msg.content.length
+            is ToolActivityMessageUi -> {
+                toolChars += msg.argumentsSummary.length + (msg.resultSummary?.length ?: 0) + (msg.command?.length ?: 0)
+            }
+            else -> Unit
+        }
+    }
+
+    val totalChars = (userChars + assistantChars + toolChars).coerceAtLeast(1)
+    val totalContext = latestUsage.contextTokens
+    val rawUserTokens = ((userChars.toDouble() / totalChars.toDouble()) * totalContext).toInt()
+    val rawAssistantTokens = ((assistantChars.toDouble() / totalChars.toDouble()) * totalContext).toInt()
+    val rawToolTokens = totalContext - rawUserTokens - rawAssistantTokens
+
+    return AgentContextUsageUi(
+        contextTokens = latestUsage.contextTokens,
+        contextWindow = selectedModel?.contextWindow,
+        inputTokens = latestUsage.inputTokens,
+        outputTokens = latestUsage.outputTokens,
+        reasoningTokens = latestUsage.reasoningTokens,
+        cachedTokens = latestUsage.cachedTokens,
+        userTokens = rawUserTokens.coerceAtLeast(0),
+        assistantTokens = rawAssistantTokens.coerceAtLeast(0),
+        toolTokens = rawToolTokens.coerceAtLeast(0),
+    )
 }
 
 internal fun contextUsageProgress(contextTokens: Int?, contextWindow: Int?): Float? {

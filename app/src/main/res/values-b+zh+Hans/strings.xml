@@ -1556,4 +1556,15 @@
   <string name="tool_character_memory_get_desc">仅角色会话可用，读取当前角色的长期剧情和关系。</string>
   <string name="tool_character_memory_write_title">整理剧情记忆</string>
   <string name="tool_character_memory_write_desc">仅角色会话可用，更新当前角色的剧情记忆，不写入现实 MEMORY.md。</string>
+  <string name="todo_panel_title">当前任务</string>
+  <string name="todo_panel_all_done">所有任务已完成</string>
+  <string name="todo_panel_in_progress">执行中</string>
+  <string name="context_user_tokens">用户输入</string>
+  <string name="context_assistant_tokens">助手回复</string>
+  <string name="context_tool_tokens">工具与系统</string>
+  <string name="context_input_tokens">输入 Tokens</string>
+  <string name="context_output_tokens">输出 Tokens</string>
+  <string name="context_reasoning_tokens">思考 Tokens</string>
+  <string name="context_cached_tokens">缓存命中</string>
+  <string name="context_free_tokens">剩余可用</string>
 </resources>
