@@ -1030,71 +1030,8 @@ private fun ToolSummaryInline(
                     modifier = Modifier.size(12.dp),
                     tint = MiuixTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = toolDisplayName(tool),
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
-                )
-            }
-        }
-    }
-}
-
-// ── 建议语 ────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SuggestionChipsRow(
-    message: SuggestionChipsMessageUi,
-    onSuggestionClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    FlowRow(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        message.prompts.forEach { prompt ->
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MiuixTheme.colorScheme.surface)
-                    .border(
-                        0.5.dp,
-                        MiuixTheme.colorScheme.outline.copy(alpha = 0.55f),
-                        RoundedCornerShape(10.dp),
-                    )
-                    .clickable { onSuggestionClick(prompt) }
-                    .padding(horizontal = 13.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.AutoAwesome,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = MiuixTheme.colorScheme.primary
-                )
-            Spacer(modifier = Modifier.width(6.dp))
-            val compactionText = when {
-                message.running -> stringResource(R.string.context_compacting)
-                message.detail.isNullOrBlank() -> stringResource(R.string.context_compaction)
-                message.detail.contains("正在压缩") || message.detail.contains("Compacting") || message.detail.contains("Сжатие") ->
-                    stringResource(R.string.context_compacting)
-                message.detail.contains("已压缩") || message.detail.contains("压缩完成") || message.detail.contains("compacted") || message.detail.contains("сжат") ->
-                    stringResource(R.string.context_compacted_success)
-                message.detail.contains("压缩失败") || message.detail.contains("failed") || message.detail.contains("не удалось") ->
-                    stringResource(R.string.context_compacted_failed)
-                message.detail.contains("中断") || message.detail.contains("interrupted") || message.detail.contains("прервано") ->
-                    stringResource(R.string.context_compacted_interrupted)
-                message.detail.contains("停止") || message.detail.contains("stopped") || message.detail.contains("остановлено") ->
-                    stringResource(R.string.context_compacted_stopped)
-                else -> message.detail
-            }
-            Text(
-                text = compactionText,
                     text = prompt,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurface,

@@ -227,7 +227,7 @@ internal class AgentLocalTools(
                 "skills_list_curated" -> textResult(skillsListCurated())
                 "skills_inspect_github" -> textResult(skillsInspectGitHub(args))
                 "skills_install_from_github" -> textResult(skillsInstallFromGitHub(args))
-                "todo_write", "task_manage", "tasks" -> textResult(AgentTaskTools.execute(browserRunId, args))
+                "todo_write", "task_manage", "tasks" -> textResult(AgentTaskTools.execute(browserRunId, args).toString())
                 else -> textResult(
                     errorResult(
                         code = "UNKNOWN_TOOL",
