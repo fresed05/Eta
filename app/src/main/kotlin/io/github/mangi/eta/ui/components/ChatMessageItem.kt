@@ -517,7 +517,7 @@ private fun ContextCompactionMarker(
                     stringResource(R.string.context_compacted_stopped)
                 else -> message.detail
             }
-            Text(
+                Text(
                 text = compactionText,
                 style = MiuixTheme.textStyles.footnote1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -1026,6 +1026,53 @@ private fun ToolSummaryInline(
             ) {
                 Icon(
                     imageVector = iconForTool(tool),
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = MiuixTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = toolDisplayName(tool),
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                )
+            }
+        }
+    }
+}
+
+// ── 建议语 ────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SuggestionChipsRow(
+    message: SuggestionChipsMessageUi,
+    onSuggestionClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FlowRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        message.prompts.forEach { prompt ->
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MiuixTheme.colorScheme.surface)
+                    .border(
+                        0.5.dp,
+                        MiuixTheme.colorScheme.outline.copy(alpha = 0.55f),
+                        RoundedCornerShape(10.dp),
+                    )
+                    .clickable { onSuggestionClick(prompt) }
+                    .padding(horizontal = 13.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
                     contentDescription = null,
                     modifier = Modifier.size(12.dp),
                     tint = MiuixTheme.colorScheme.primary

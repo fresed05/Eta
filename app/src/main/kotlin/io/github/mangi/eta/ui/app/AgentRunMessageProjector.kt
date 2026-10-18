@@ -112,6 +112,7 @@ internal class AgentRunMessageProjector(
         return messages
     }
 
+    /** 回放从该 run 的空轨迹重建；仅重排有回放事件的补充输入，旧 handoff 独有的输入必须保留。 */
     fun resetForReplay(
         runId: String,
         messages: List<AgentChatMessageUi>,
@@ -199,7 +200,6 @@ internal class AgentRunMessageProjector(
                     content = message.content + delta,
                     isStreaming = true,
                     renderMarkdown = false,
-            usage = latestRunUsage[runId],
                 )
             } else {
                 message
@@ -243,7 +243,6 @@ internal class AgentRunMessageProjector(
                     isStreaming = true,
                     elapsedSeconds = elapsedSeconds,
                     collapsed = false,
-            usage = latestRunUsage[runId],
                 )
             } else {
                 message
@@ -435,29 +434,10 @@ internal class AgentRunMessageProjector(
             }
         }
         val targetIndex = messages.indexOfLast { it is ToolActivityMessageUi && it.id == targetId }
-        if (targetIndex >= 0) {
-            return messages.mapIndexed { index, message ->
-                if (index == targetIndex && message is AgentMessageUi) message.copy(usage = usage) else message
-        }
-        val fallbackIndex = messages.indexOfLast { message ->
-            (message is ThinkingMessageUi && isThinkingMessageForRound(message.id, runId, round)) ||
-            (message is ToolActivityMessageUi && message.id.startsWith("$runId-tool-")) ||
-            (message is AgentMessageUi && isAssistantMessageForRun(message.id, runId))
-        }
-        if (fallbackIndex >= 0) {
-            return messages.mapIndexed { index, message ->
-                    when (message) {
-                        is ThinkingMessageUi -> message.copy(usage = usage)
-                        is ToolActivityMessageUi -> message.copy(usage = usage)
-                        is AgentMessageUi -> message.copy(usage = usage)
-                        else -> message
-                    }
-                } else message
-            }
-        }
-        return messages
+        if (targetIndex < 0) return messages
 
         return messages.mapIndexed { index, message ->
+            if (index == targetIndex && message is ToolActivityMessageUi) {
                 message.copy(
                     status = status,
                     resultSummary = event.resultSummary,
@@ -717,6 +697,7 @@ internal class AgentRunMessageProjector(
                 )
             }
             return messages.mapIndexed { index, message -> if (index == targetIndex) replacement else message }
+        }
 
         private fun String.assistantRound(runId: String): Int? =
             removePrefix(assistantMessagePrefix(runId))
