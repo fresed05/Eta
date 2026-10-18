@@ -116,6 +116,12 @@ internal fun latestContextUsage(
             is AgentMessageUi -> message.usage?.contextTokens?.let {
                 return AgentContextUsageUi(it, selectedModel?.contextWindow)
             }
+            is ThinkingMessageUi -> message.usage?.contextTokens?.let {
+                return AgentContextUsageUi(it, selectedModel?.contextWindow)
+            }
+            is ToolActivityMessageUi -> message.usage?.contextTokens?.let {
+                return AgentContextUsageUi(it, selectedModel?.contextWindow)
+            }
             is SystemNoticeMessageUi -> if (message.code == SystemNoticeCode.ContextCompaction) {
                 return AgentContextUsageUi(null, selectedModel?.contextWindow)
             }

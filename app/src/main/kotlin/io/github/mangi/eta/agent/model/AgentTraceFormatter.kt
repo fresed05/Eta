@@ -53,26 +53,33 @@ internal class AgentTraceFormatter {
                 summarizeScrollArguments(t("滚动元素", "Прокрутка элемента", "Scroll element"), toolCall.argumentsJson, withIndex = true)
             "press_key" -> summarizePressKeyArguments(toolCall.argumentsJson)
             "wait" -> summarizeWaitArguments(toolCall.argumentsJson)
-            "wait_for_text" -> "等待文本出现"
+            "wait_for_text" -> t("等待文本出现", "Ожидание текста", "Wait for text")
             "wait_for_package" -> t("等待应用就绪", "Ожидание готовности приложения", "Wait for app")
             "open_system_panel" -> t("打开系统面板", "Открытие системной панели", "Open system panel")
-            "read_image" -> "查看图片"
-            AgentConversationToolCatalog.READ_HISTORY -> "读取当前会话历史"
+            "read_image" -> t("查看图片", "Просмотр изображения", "View image")
+            "todo_write", "task_manage", "tasks" -> summarizeTodoArguments(toolCall.argumentsJson)
+            AgentConversationToolCatalog.READ_HISTORY -> t("读取当前会话历史", "Чтение истории беседы", "Read conversation history")
             "memory_get", "character_memory_get" -> summarizeMemoryGetArguments(toolCall.argumentsJson)
             "memory_write", "character_memory_write" -> summarizeMemoryWriteArguments(toolCall.argumentsJson)
-            "skills_list" -> "查看技能列表"
-            "skills_read" -> "读取技能"
-            "skills_read_resource" -> "读取技能资源"
-            "skills_list_curated" -> "浏览精选技能"
-            "skills_inspect_github" -> "查看技能详情"
-            "skills_install_from_github" -> "安装技能"
+            "skills_list" -> t("查看技能列表", "Список навыков", "Skills list")
+            "skills_read" -> t("读取技能", "Чтение навыка", "Read skill")
+            "skills_read_resource" -> t("读取技能资源", "Чтение ресурса навыка", "Read skill resource")
+            "skills_list_curated" -> t("浏览精选技能", "Каталог навыков", "Curated skills")
+            "skills_inspect_github" -> t("查看技能详情", "Инспекция навыка на GitHub", "Inspect skill on GitHub")
+            "skills_install_from_github" -> t("安装技能", "Установка навыка с GitHub", "Install skill from GitHub")
             else -> {
-                val label = DEVICE_ACTION_LABELS[toolCall.name]
+                val label = deviceActionLabel(toolCall.name)
                     ?: AgentPhoneToolCatalog.entries.firstOrNull { it.name == toolCall.name }?.title
                     ?: io.github.mangi.eta.agent.context.PersonalSearchTools.searches.firstOrNull { it.name == toolCall.name }?.title
-                    ?: when (toolCall.name) { "search_notes" -> "查询便签"; "search_system_memories" -> "查询系统记忆"; "read_personal_item" -> "读取检索详情"; "summarize_bills" -> "汇总账单"; else -> null }
+                    ?: when (toolCall.name) {
+                        "search_notes" -> t("查询便签", "Поиск в заметках", "Search notes")
+                        "search_system_memories" -> t("查询系统记忆", "Поиск в воспоминаниях", "Search system memories")
+                        "read_personal_item" -> t("读取检索详情", "Чтение элемента", "Read item details")
+                        "summarize_bills" -> t("汇总账单", "Сводка по счетам", "Summarize bills")
+                        else -> null
+                    }
                 when {
-                    label == null -> "准备执行"
+                    label == null -> t("准备执行", "Выполнение", "Ready to execute")
                     toolCall.name.startsWith("search_") ->
                         summarizeQueryArguments(label, toolCall.argumentsJson)
                     else -> label
@@ -112,8 +119,8 @@ internal class AgentTraceFormatter {
             val uri = URI(raw)
             val scheme = uri.scheme?.lowercase()?.take(24)
             val host = uri.host?.lowercase()?.take(160)
-            listOfNotNull("交给外部应用", scheme, host).joinToString(" · ")
-        }.getOrDefault("交给外部应用")
+            listOfNotNull(t("交给外部应用", "Передать приложению", "Open in external app"), scheme, host).joinToString(" · ")
+        }.getOrDefault(t("交给外部应用", "Передать приложению", "Open in external app"))
 
     /** browser_use 摘要只暴露动作和安全提取的 host。 */
     fun summarizeBrowserArguments(argumentsJson: String): String =
@@ -122,13 +129,17 @@ internal class AgentTraceFormatter {
             val action = arguments.optString("action").browserActionLabel()
             val host = safeHttpHost(arguments.optString("url"))
             listOfNotNull(action, host).joinToString(" · ")
-        }.getOrElse { "浏览器操作" }
+        }.getOrElse { t("浏览器操作", "Действие в браузере", "Browser operation") }
 
     private fun summarizeFetchArguments(argumentsJson: String): String = runCatching {
         val arguments = JSONObject(argumentsJson)
-        val label = if (arguments.has("document_id")) "继续读取网页" else "读取网页"
+        val label = if (arguments.has("document_id")) {
+            t("继续读取网页", "Продолжение чтения страницы", "Continue reading page")
+        } else {
+            t("读取网页", "Чтение страницы", "Read page")
+        }
         listOfNotNull(label, safeHttpHost(arguments.optString("url"))?.removePrefix("www.")).joinToString(" · ")
-    }.getOrDefault("读取网页")
+    }.getOrDefault(t("读取网页", "Чтение страницы", "Read page"))
 
     private fun summarizeTerminalArguments(argumentsJson: String): String =
         runCatching {
@@ -172,7 +183,7 @@ internal class AgentTraceFormatter {
                 if (chars > 0) append(" · $chars " + t("字符", "симв.", "chars"))
                 if (args.optBoolean("submit")) append(" · " + t("提交", "Отправка", "Submit"))
             }
-        }.getOrDefault("输入文本")
+        }.getOrDefault(t("输入文本", "Ввод текста", "Input text"))
 
     /** 搜索关键词是用户自己发起的查询，直接展示；仍做单行化与长度截断。 */
     private fun summarizeQueryArguments(label: String, argumentsJson: String): String =
@@ -215,8 +226,8 @@ internal class AgentTraceFormatter {
     private fun summarizePressKeyArguments(argumentsJson: String): String =
         runCatching {
             val button = JSONObject(argumentsJson).optString("button").pressKeyLabel()
-            listOfNotNull("按键", button).joinToString(" · ")
-        }.getOrDefault("按键")
+            listOfNotNull(t("按键", "Клавиша", "Key"), button).joinToString(" · ")
+        }.getOrDefault(t("按键", "Клавиша", "Key"))
 
     private fun summarizeWaitArguments(argumentsJson: String): String =
         runCatching {
@@ -224,47 +235,101 @@ internal class AgentTraceFormatter {
                 .coerceAtLeast(0)
             val duration = if (durationMs >= 1_000) {
                 String.format(Locale.US, "%.1f", durationMs / 1_000f)
-                    .trimEnd('0').trimEnd('.') + " 秒"
+                    .trimEnd('0').trimEnd('.') + " " + t("秒", "с", "s")
             } else {
-                "$durationMs 毫秒"
+                "$durationMs " + t("毫秒", "мс", "ms")
             }
-            "等待 · $duration"
-        }.getOrDefault("等待")
+            t("等待", "Ожидание", "Wait") + " · $duration"
+        }.getOrDefault(t("等待", "Ожидание", "Wait"))
 
     private fun summarizeObservationArguments(argumentsJson: String): String =
         runCatching {
             val options = AgentScreenObservationContract.resolve(JSONObject(argumentsJson))
             buildList {
-                add("观察屏幕")
-                if (options.includeScreenshot) add("含截图")
-                if (options.includeUiTree) add("含界面树")
+                add(t("观察屏幕", "Снимок экрана", "Observe screen"))
+                if (options.includeScreenshot) add(t("含截图", "со скриншотом", "with screenshot"))
+                if (options.includeUiTree) add(t("含界面树", "с деревом UI", "with UI tree"))
             }.joinToString(" · ")
-        }.getOrDefault("观察屏幕")
+        }.getOrDefault(t("观察屏幕", "Снимок экрана", "Observe screen"))
+
+    private fun summarizeTodoArguments(argumentsJson: String): String =
+        runCatching {
+            val args = JSONObject(argumentsJson)
+            val array = args.optJSONArray("todos")
+            if (array != null && array.length() > 0) {
+                val total = array.length()
+                var completed = 0
+                var inProgressTitle: String? = null
+                for (i in 0 until total) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val status = item.optString("status")
+                    if (status == "completed") completed++
+                    if (status == "in_progress" && inProgressTitle == null) {
+                        inProgressTitle = item.optString("content").ifBlank { item.optString("title") }
+                    }
+                }
+                buildList {
+                    add(t("规划任务", "Задачи", "Tasks"))
+                    add("$completed/$total")
+                    inProgressTitle?.takeIf { it.isNotBlank() }?.let { add(it.take(30)) }
+                }.joinToString(" · ")
+            } else {
+                val action = args.optString("action")
+                when (action) {
+                    "clear" -> t("清空任务", "Очистка задач", "Clear tasks")
+                    "list" -> t("查看任务列表", "Список задач", "List tasks")
+                    "update" -> {
+                        val id = args.optString("id")
+                        val status = args.optString("status")
+                        t("更新任务", "Обновление задачи", "Update task") + " #$id: $status"
+                    }
+                    "add" -> {
+                        val content = args.optString("content").ifBlank { args.optString("title") }
+                        t("添加任务", "Новая задача", "Add task") + if (content.isNotBlank()) " · ${content.take(30)}" else ""
+                    }
+                    else -> t("规划任务", "Задачи", "Tasks")
+                }
+            }
+        }.getOrDefault(t("规划任务", "Задачи", "Tasks"))
+
+    private fun summarizeTodoResult(json: JSONObject): String =
+        buildList {
+            val total = json.optInt("total", 0)
+            val completed = json.optInt("completed", 0)
+            val inProgress = json.optInt("in_progress", 0)
+            add(t("任务已更新", "Задачи обновлены", "Tasks updated"))
+            add("$completed/$total " + t("完成", "выполнено", "done"))
+            if (inProgress > 0) add("$inProgress " + t("进行中", "в процессе", "in progress"))
+        }.joinToString(" · ")
 
     private fun summarizeMemoryGetArguments(argumentsJson: String): String =
         runCatching {
             val arguments = JSONObject(argumentsJson)
-            if (arguments.optString("query").isNotBlank()) "检索记忆" else "读取记忆"
-        }.getOrDefault("读取记忆")
+            if (arguments.optString("query").isNotBlank()) {
+                t("检索记忆", "Поиск в памяти", "Search memory")
+            } else {
+                t("读取记忆", "Чтение памяти", "Read memory")
+            }
+        }.getOrDefault(t("读取记忆", "Чтение памяти", "Read memory"))
 
     private fun summarizeMemoryWriteArguments(argumentsJson: String): String =
         runCatching {
             val arguments = JSONObject(argumentsJson)
             val mode = when (arguments.optString("mode")) {
-                "replace_range" -> "替换片段"
-                "append" -> "追加"
-                "clear" -> "清空"
+                "replace_range" -> t("替换片段", "Замена диапазона", "Replace range")
+                "append" -> t("追加", "Добавление", "Append")
+                "clear" -> t("清空", "Очистка", "Clear")
                 else -> null
             }
             val content = arguments.optString("content")
             val lines = if (content.isEmpty()) 0 else content.count { it == '\n' } + 1
             buildList {
-                add("更新记忆")
+                add(t("更新记忆", "Обновление памяти", "Update memory"))
                 mode?.let(::add)
-                add("$lines 行")
-                add("${content.toByteArray(Charsets.UTF_8).size} 字节")
+                add("$lines " + t("行", "строк", "lines"))
+                add("${content.toByteArray(Charsets.UTF_8).size} " + t("字节", "байт", "bytes"))
             }.joinToString(" · ")
-        }.getOrDefault("更新记忆")
+        }.getOrDefault(t("更新记忆", "Обновление памяти", "Update memory"))
 
     /** 结果成败供事件与 UI 状态使用，不再依赖摘要文本里的标记。 */
     fun isSuccessResult(result: AgentModelClient.ToolResult): Boolean =
@@ -280,16 +345,17 @@ internal class AgentTraceFormatter {
         if (toolName == "terminal" || toolName == "run_command") {
             return summarizeTerminalResult(json)
         }
-        if (json?.optString("status") == "unconfirmed") return "操作已提交，效果未确认"
+        if (json?.optString("status") == "unconfirmed") return t("操作已提交，效果未确认", "Действие отправлено, результат не подтвержден", "Action submitted, unconfirmed")
         if (!isSuccessResult(result)) return summarizeFailure(json)
         return when (toolName) {
-            BROWSER_TOOL_NAME -> json?.let(::summarizeBrowserResult) ?: "浏览器操作完成"
-            AgentConversationToolCatalog.READ_HISTORY -> "已读取历史分页"
+            BROWSER_TOOL_NAME -> json?.let(::summarizeBrowserResult) ?: t("浏览器操作完成", "Операция в браузере завершена", "Browser operation completed")
+            "todo_write", "task_manage", "tasks" -> json?.let(::summarizeTodoResult) ?: t("完成", "Готово", "Completed")
+            AgentConversationToolCatalog.READ_HISTORY -> t("已读取历史分页", "Страница истории прочитана", "History page read")
             "memory_get", "memory_write", "character_memory_get", "character_memory_write" ->
-                json?.let { summarizeMemoryResult(toolName, it) } ?: "完成"
-            "search_apps" -> json?.let(::summarizeSearchAppsResult) ?: "完成"
-            "launch_app" -> json?.let(::summarizeLaunchAppResult) ?: "已打开"
-            else -> json?.let { summarizeGenericResult(it, result) } ?: "完成"
+                json?.let { summarizeMemoryResult(toolName, it) } ?: t("完成", "Готово", "Completed")
+            "search_apps" -> json?.let(::summarizeSearchAppsResult) ?: t("完成", "Готово", "Completed")
+            "launch_app" -> json?.let(::summarizeLaunchAppResult) ?: t("已打开", "Открыто", "Opened")
+            else -> json?.let { summarizeGenericResult(it, result) } ?: t("完成", "Готово", "Completed")
         }
     }
 
@@ -301,24 +367,28 @@ internal class AgentTraceFormatter {
      * 结果只给出结论，避免工作过程同一行重复。
      */
     private fun summarizeWebResult(toolName: String, json: JSONObject?): String {
-        val label = if (toolName == "web_search") "网页搜索" else "网页读取"
-        if (json == null) return "完成"
+        val label = if (toolName == "web_search") t("网页搜索", "Поиск в сети", "Web Search") else t("网页读取", "Чтение страницы", "Fetch URL")
+        if (json == null) return t("完成", "Готово", "Done")
         if (!json.optBoolean("ok", true)) {
             val code = json.optString("code").takeIf { it.matches(Regex("[A-Z][A-Z0-9_]{0,79}")) }
-            return listOfNotNull("${label}失败", code?.let { "code=$it" }).joinToString(" · ")
+            return listOfNotNull("${label} " + t("失败", "ошибка", "failed"), code?.let { "code=$it" }).joinToString(" · ")
         }
         if (toolName == "web_search") {
             val count = json.optJSONArray("results")?.length() ?: json.firstNonNegativeInt("count")
             return when (count) {
-                null -> "完成"
-                0 -> "没有找到结果"
-                else -> "$count 条结果"
+                null -> t("完成", "Готово", "Done")
+                0 -> t("没有找到结果", "Ничего не найдено", "No results found")
+                else -> "$count " + t("条结果", "результатов", "results")
             }
         }
         val chars = (json.opt("text") as? String)?.length
             ?: json.firstNonNegativeInt("returned_chars", "text_chars")
-            ?: return "完成"
-        return if (json.optBoolean("has_more")) "已读前 ${formatCharCount(chars)}" else formatCharCount(chars)
+            ?: return t("完成", "Готово", "Done")
+        return if (json.optBoolean("has_more")) {
+            t("已读前 ", "Прочитано первые ", "Read first ") + formatCharCount(chars)
+        } else {
+            formatCharCount(chars)
+        }
     }
 
     /** 失败摘要保留 code= 标记，供运行日志提取稳定错误码；message 是工具侧给出的中文原因。 */
@@ -328,7 +398,7 @@ internal class AgentTraceFormatter {
             ?.let(::sanitizeSummaryValue)
             ?.takeIf { it.isNotBlank() }
         return buildList {
-            add("失败")
+            add(t("失败", "Ошибка", "Failed"))
             reason?.let(::add)
             code?.let { add("code=$it") }
         }.joinToString(" · ")
@@ -336,9 +406,13 @@ internal class AgentTraceFormatter {
 
     private fun summarizeMemoryResult(toolName: String, json: JSONObject): String =
         buildList {
-            add(if (toolName.endsWith("memory_get")) "已读取记忆" else "已更新记忆")
-            if (json.has("line_count")) add("${json.optInt("line_count")} 行")
-            if (json.has("bytes")) add("${json.optInt("bytes")} 字节")
+            add(if (toolName.endsWith("memory_get")) {
+                t("已读取记忆", "Память прочитана", "Memory read")
+            } else {
+                t("已更新记忆", "Память обновлена", "Memory updated")
+            })
+            if (json.has("line_count")) add("${json.optInt("line_count")} " + t("行", "строк", "lines"))
+            if (json.has("bytes")) add("${json.optInt("bytes")} " + t("字节", "байт", "bytes"))
         }.joinToString(" · ")
 
     private fun summarizeGenericResult(
@@ -346,40 +420,46 @@ internal class AgentTraceFormatter {
         result: AgentModelClient.ToolResult,
     ): String =
         buildList {
-            add(if (json.has("verified") && !json.optBoolean("verified")) "已执行，效果未确认" else "完成")
-            json.optJSONArray("entries")?.let { add("${it.length()} 个条目") }
-            json.optJSONArray("matches")?.let { add("${it.length()} 个匹配") }
-            if (json.has("bytes_read")) add("已读 ${json.optLong("bytes_read")} 字节")
-            if (json.has("replacements")) add("替换 ${json.optInt("replacements")} 处")
-            if (json.optBoolean("truncated") || json.optBoolean("has_more")) add("可继续读取")
-            if (json.optBoolean("partial") || json.optBoolean("scan_limited")) add("采集范围有限")
-            json.optJSONArray("apps")?.let { add("找到 ${it.length()} 个应用") }
-            json.optJSONArray("candidates")?.let { add("${it.length()} 个候选") }
-            if (result.images.isNotEmpty()) add("${result.images.size} 张图片")
+            add(if (json.has("verified") && !json.optBoolean("verified")) {
+                t("已执行，效果未确认", "Выполнено, результат не подтвержден", "Executed, unconfirmed")
+            } else {
+                t("完成", "Готово", "Completed")
+            })
+            json.optJSONArray("entries")?.let { add("${it.length()} " + t("个条目", "записей", "entries")) }
+            json.optJSONArray("matches")?.let { add("${it.length()} " + t("个匹配", "совпадений", "matches")) }
+            if (json.has("bytes_read")) add(t("已读", "Прочитано", "Read") + " ${json.optLong("bytes_read")} " + t("字节", "байт", "bytes"))
+            if (json.has("replacements")) add(t("替换", "Замен", "Replaced") + " ${json.optInt("replacements")} " + t("处", "", ""))
+            if (json.optBoolean("truncated") || json.optBoolean("has_more")) add(t("可继续读取", "Есть продолжение", "More data available"))
+            if (json.optBoolean("partial") || json.optBoolean("scan_limited")) add(t("采集范围有限", "Ограниченный охват", "Scan limited"))
+            json.optJSONArray("apps")?.let { add(t("找到", "Найдено", "Found") + " ${it.length()} " + t("个应用", "приложений", "apps")) }
+            json.optJSONArray("candidates")?.let { add("${it.length()} " + t("个候选", "кандидатов", "candidates")) }
+            if (result.images.isNotEmpty()) add("${result.images.size} " + t("张图片", "изображений", "images"))
         }.joinToString(" · ")
 
     private fun summarizeSearchAppsResult(json: JSONObject): String {
-        val apps = json.optJSONArray("apps") ?: return "未找到匹配应用"
+        val notFound = t("未找到匹配应用", "Приложения не найдены", "No matching apps found")
+        val apps = json.optJSONArray("apps") ?: return notFound
         val total = apps.length()
-        if (total == 0) return "未找到匹配应用"
+        if (total == 0) return notFound
         val names = (0 until total).mapNotNull { index ->
             apps.optJSONObject(index)?.optString("app_name")
                 ?.let(::sanitizeSummaryValue)
                 ?.takeIf { it.isNotBlank() }
         }
         return buildString {
-            append("已找到 $total 个应用")
+            append(t("已找到 $total 个应用", "Найдено приложений: $total", "Found $total apps"))
             val shown = names.take(MAX_LISTED_APP_NAMES)
             if (shown.isNotEmpty()) {
                 append(" · ").append(shown.joinToString("、"))
-                if (total > shown.size) append(" 等")
+                if (total > shown.size) append(" " + t("等", "и др.", "etc."))
             }
         }
     }
 
     private fun summarizeLaunchAppResult(json: JSONObject): String {
         val appName = sanitizeSummaryValue(json.optString("app_name"))
-        return if (appName.isNotBlank()) "已打开 · $appName" else "已打开"
+        val prefix = t("已打开", "Открыто", "Opened")
+        return if (appName.isNotBlank()) "$prefix · $appName" else prefix
     }
 
     /**
@@ -387,11 +467,15 @@ internal class AgentTraceFormatter {
      * 只保留开头几行，截断时追加省略标记。
      */
     private fun summarizeTerminalResult(json: JSONObject?): String {
-        if (json == null) return "终端"
+        if (json == null) return t("终端", "Терминал", "Terminal")
         if (json.optString("code").isNotBlank()) return summarizeFailure(json)
         if (!json.has("exit_code") || json.isNull("exit_code")) {
             val action = json.optString("action").terminalActionLabel()
-            return if (json.optBoolean("ok", true)) "终端 · $action" else "失败 · $action"
+            return if (json.optBoolean("ok", true)) {
+                t("终端", "Терминал", "Terminal") + " · $action"
+            } else {
+                t("失败", "Ошибка", "Failed") + " · $action"
+            }
         }
         val exitCode = json.optInt("exit_code")
         val timedOut = json.optBoolean("timed_out", false)
@@ -421,12 +505,15 @@ internal class AgentTraceFormatter {
             preview = preview.take(MAX_TERMINAL_PREVIEW_CHARS)
             capped = true
         }
-        return if (capped) "$preview\n…" else preview
+        return if (capped) "$preview…" else preview
     }
 
+    /**
+     * 浏览器结果面向用户展示关键结论，不回显完整 HTML 或冗长内容。
+     * 标题只在有实质变化时暴露，减少噪声。
+     */
     private fun summarizeBrowserResult(json: JSONObject): String {
-        val page = json.optJSONObject("page")
-            ?: json.optJSONObject("page_info")
+        val page = json.optJSONObject("page_info")
             ?: json.optJSONObject("pageInfo")
         val action = json.optString("action")
             .takeIf { it in BROWSER_ACTIONS }
@@ -463,20 +550,24 @@ internal class AgentTraceFormatter {
         return buildList {
             add(action.browserSuccessLabel())
             host?.let(::add)
-            title?.let { add("《$it》") }
+            title?.let { add("«$it»") }
             if (action in BROWSER_TEXT_ACTIONS) {
-                textChars?.let { add("约 ${formatCharCount(it)}") }
+                textChars?.let { add(t("约 ", "ок. ", "approx. ") + formatCharCount(it)) }
             }
-            elementCount?.let { add("$it 个元素") }
-            if (json.optBoolean("truncated", false)) add("已截断")
+            elementCount?.let { add("$it " + t("个元素", "элементов", "elements")) }
+            if (json.optBoolean("truncated", false)) add(t("已截断", "обрезано", "truncated"))
         }.joinToString(" · ")
     }
 
     private fun formatCharCount(chars: Int): String =
         if (chars >= 10_000) {
-            String.format(Locale.US, "%.1f", chars / 10_000f).trimEnd('0').trimEnd('.') + " 万字"
+            if (isZh) {
+                String.format(Locale.US, "%.1f", chars / 10_000f).trimEnd('0').trimEnd('.') + " 万字"
+            } else {
+                String.format(Locale.US, "%.1f", chars / 1_000f).trimEnd('0').trimEnd('.') + "k " + t("字", "симв.", "chars")
+            }
         } else {
-            "$chars 字"
+            "$chars " + t("字", "симв.", "chars")
         }
 
     private fun JSONObject.firstNonNegativeInt(vararg keys: String): Int? =
@@ -509,57 +600,57 @@ internal class AgentTraceFormatter {
             }
 
     private fun String.browserActionLabel(): String = when (this) {
-        "navigate" -> "打开网页"
-        "get_readable" -> "提取正文"
-        "get_text" -> "读取文本"
-        "find_elements" -> "查找元素"
-        "click" -> "点击网页"
-        "type" -> "输入内容"
-        "scroll" -> "滚动网页"
-        "screenshot" -> "网页截图"
-        "get_page_info" -> "查看网页信息"
-        "go_back" -> "网页后退"
-        "go_forward" -> "网页前进"
-        "reload" -> "刷新网页"
-        "wait_for_selector" -> "等待网页元素"
-        else -> "浏览器操作"
+        "navigate" -> t("打开网页", "Переход по ссылке", "Navigate")
+        "get_readable" -> t("提取正文", "Чтение содержимого", "Extract readable")
+        "get_text" -> t("读取文本", "Чтение текста", "Get text")
+        "find_elements" -> t("查找元素", "Поиск элементов", "Find elements")
+        "click" -> t("点击网页", "Клик на странице", "Click")
+        "type" -> t("输入内容", "Ввод текста", "Type text")
+        "scroll" -> t("滚动网页", "Прокрутка страницы", "Scroll")
+        "screenshot" -> t("网页截图", "Скриншот страницы", "Screenshot")
+        "get_page_info" -> t("查看网页信息", "Информация о странице", "Page info")
+        "go_back" -> t("网页后退", "Назад", "Go back")
+        "go_forward" -> t("网页前进", "Вперед", "Go forward")
+        "reload" -> t("刷新网页", "Обновить", "Reload")
+        "wait_for_selector" -> t("等待网页元素", "Ожидание элемента", "Wait for selector")
+        else -> t("浏览器操作", "Действие в браузере", "Browser action")
     }
 
     private fun String.browserSuccessLabel(): String = when (this) {
-        "navigate" -> "已打开"
-        "get_readable" -> "已提取正文"
-        "get_text" -> "已读取文本"
-        "find_elements" -> "已找到元素"
-        "click" -> "已点击网页"
-        "type" -> "已输入内容"
-        "scroll" -> "已滚动网页"
-        "screenshot" -> "已截图"
-        "get_page_info" -> "已读取页面信息"
-        "go_back" -> "已后退"
-        "go_forward" -> "已前进"
-        "reload" -> "已刷新"
-        "wait_for_selector" -> "已等到目标元素"
-        else -> "浏览器操作完成"
+        "navigate" -> t("已打开", "Открыто", "Opened")
+        "get_readable" -> t("已提取正文", "Содержимое извлечено", "Extracted")
+        "get_text" -> t("已读取文本", "Текст прочитан", "Text read")
+        "find_elements" -> t("已找到元素", "Элементы найдены", "Elements found")
+        "click" -> t("已点击网页", "Клик выполнен", "Clicked")
+        "type" -> t("已输入内容", "Ввод выполнен", "Typed")
+        "scroll" -> t("已滚动网页", "Прокрутка выполнена", "Scrolled")
+        "screenshot" -> t("已截图", "Скриншот сделан", "Captured")
+        "get_page_info" -> t("已读取页面信息", "Информация получена", "Page info read")
+        "go_back" -> t("已后退", "Выполнен переход назад", "Went back")
+        "go_forward" -> t("已前进", "Выполнен переход вперед", "Went forward")
+        "reload" -> t("已刷新", "Страница обновлена", "Reloaded")
+        "wait_for_selector" -> t("已等到目标元素", "Элемент обнаружен", "Element ready")
+        else -> t("浏览器操作完成", "Операция в браузере завершена", "Browser operation completed")
     }
 
     private fun String.scrollDirectionLabel(): String? = when (lowercase(Locale.US)) {
-        "up" -> "向上"
-        "down" -> "向下"
-        "left" -> "向左"
-        "right" -> "向右"
+        "up" -> t("向上", "вверх", "up")
+        "down" -> t("向下", "вниз", "down")
+        "left" -> t("向左", "влево", "left")
+        "right" -> t("向右", "вправо", "right")
         else -> null
     }
 
     private fun String.pressKeyLabel(): String? = when (lowercase(Locale.US)) {
-        "back" -> "返回"
-        "home" -> "主页"
-        "recents", "recent" -> "最近任务"
-        "notifications" -> "通知栏"
-        "quick_settings" -> "控制中心"
-        "power" -> "电源"
-        "volume_up" -> "音量加"
-        "volume_down" -> "音量减"
-        "mute" -> "静音"
+        "back" -> t("返回", "Назад", "Back")
+        "home" -> t("主页", "Домой", "Home")
+        "recents", "recent" -> t("最近任务", "Недавние", "Recents")
+        "notifications" -> t("通知栏", "Уведомления", "Notifications")
+        "quick_settings" -> t("控制中心", "Быстрые настройки", "Quick settings")
+        "power" -> t("电源", "Питание", "Power")
+        "volume_up" -> t("音量加", "Громкость +", "Volume up")
+        "volume_down" -> t("音量减", "Громкость -", "Volume down")
+        "mute" -> t("静音", "Без звука", "Mute")
         else -> null
     }
 
@@ -581,6 +672,52 @@ internal class AgentTraceFormatter {
         "alpine" -> "Alpine"
         "debian" -> "Debian"
         else -> "Android"
+    }
+
+    private fun deviceActionLabel(name: String): String? = when (name) {
+        "set_alarm" -> t("设置闹钟", "Установка будильника", "Set alarm")
+        "set_timer" -> t("设置计时器", "Установка таймера", "Set timer")
+        "device_status" -> t("查看设备状态", "Состояние устройства", "Device status")
+        "network_info" -> t("查看网络信息", "Сведения о сети", "Network info")
+        "top_memory_apps" -> t("查看内存占用排行", "Топ приложений по памяти", "Top memory apps")
+        "top_storage_apps" -> t("查看存储占用排行", "Топ приложений по хранилищу", "Top storage apps")
+        "media_control" -> t("控制媒体播放", "Управление медиа", "Media control")
+        "set_volume" -> t("调整音量", "Настройка громкости", "Set volume")
+        "get_setting" -> t("读取系统设置", "Чтение системных настроек", "Get system setting")
+        "wifi_credentials" -> t("读取 Wi-Fi 密码", "Пароль Wi-Fi", "Wi-Fi credentials")
+        "recent_notifications" -> t("读取最近通知", "Недавние уведомления", "Recent notifications")
+        "search_notification_history" -> t("搜索通知历史", "Поиск в истории уведомлений", "Search notifications")
+        "recent_app_activity" -> t("查看应用活动", "Недавняя активность приложений", "Recent app activity")
+        "app_usage_summary" -> t("查看应用使用统计", "Статистика использования приложений", "App usage summary")
+        "get_current_location" -> t("获取当前位置", "Текущее местоположение", "Current location")
+        "get_device_environment" -> t("查看设备环境", "Среда устройства", "Device environment")
+        "list_alarms" -> t("查看闹钟列表", "Список будильников", "List alarms")
+        "list_active_timers" -> t("查看计时器", "Активные таймеры", "Active timers")
+        "search_clipboard_history" -> t("搜索剪贴板历史", "Поиск в буфере обмена", "Search clipboard history")
+        "get_health_summary" -> t("查看健康摘要", "Сводка здоровья", "Health summary")
+        "read_sms_code" -> t("读取短信验证码", "Чтение кода из SMS", "Read SMS code")
+        "get_logcat" -> t("读取系统日志", "Системный журнал (logcat)", "Get logcat")
+        "search_media" -> t("搜索媒体文件", "Поиск медиафайлов", "Search media")
+        "search_audio" -> t("搜索音频", "Поиск аудио", "Search audio")
+        "search_recordings" -> t("搜索录音", "Поиск записей диктофона", "Search recordings")
+        "search_files" -> t("搜索文件", "Поиск файлов", "Search files")
+        "search_calendar_events" -> t("搜索日程", "Поиск событий календаря", "Search calendar")
+        "search_contacts" -> t("搜索联系人", "Поиск контактов", "Search contacts")
+        "search_call_history" -> t("搜索通话记录", "Поиск в истории вызовов", "Search call history")
+        "search_messages" -> t("搜索短信", "Поиск сообщений", "Search messages")
+        "search_downloads" -> t("搜索下载内容", "Поиск в загрузках", "Search downloads")
+        "search_coloros_notes" -> t("搜索便签", "Поиск заметок", "Search notes")
+        "search_coloros_recordings" -> t("搜索录音机", "Поиск записей диктофона", "Search recordings")
+        "search_recording_summaries" -> t("搜索录音摘要", "Поиск резюме записей", "Search recording summaries")
+        "search_coloros_memories" -> t("搜索小布记忆", "Поиск воспоминаний", "Search memories")
+        "search_saved_places" -> t("搜索收藏地点", "Поиск сохраненных мест", "Search saved places")
+        "search_personal_orders" -> t("搜索个人订单", "Поиск заказов", "Search orders")
+        "search_qq_chat_images" -> t("搜索 QQ 聊天图片", "Поиск изображений в QQ", "Search QQ images")
+        "search_wechat_chat_images" -> t("搜索微信聊天图片", "Поиск изображений в WeChat", "Search WeChat images")
+        "set_setting" -> t("修改系统设置", "Изменение системной настройки", "Set system setting")
+        "set_device_state" -> t("修改设备状态", "Изменение состояния устройства", "Set device state")
+        "app_state_control" -> t("管理应用状态", "Управление состоянием приложения", "App state control")
+        else -> null
     }
 
     private companion object {
@@ -615,51 +752,5 @@ internal class AgentTraceFormatter {
             "wait_for_selector",
         )
         val BROWSER_TEXT_ACTIONS = setOf("get_readable", "get_text")
-
-        /** 结构化设备工具只展示动作标签，不暴露任何参数。 */
-        val DEVICE_ACTION_LABELS = mapOf(
-            "set_alarm" to "设置闹钟",
-            "set_timer" to "设置计时器",
-            "device_status" to "查看设备状态",
-            "network_info" to "查看网络信息",
-            "top_memory_apps" to "查看内存占用排行",
-            "top_storage_apps" to "查看存储占用排行",
-            "media_control" to "控制媒体播放",
-            "set_volume" to "调整音量",
-            "get_setting" to "读取系统设置",
-            "wifi_credentials" to "读取 Wi-Fi 密码",
-            "recent_notifications" to "读取最近通知",
-            "search_notification_history" to "搜索通知历史",
-            "recent_app_activity" to "查看应用活动",
-            "app_usage_summary" to "查看应用使用统计",
-            "get_current_location" to "获取当前位置",
-            "get_device_environment" to "查看设备环境",
-            "list_alarms" to "查看闹钟列表",
-            "list_active_timers" to "查看计时器",
-            "search_clipboard_history" to "搜索剪贴板历史",
-            "get_health_summary" to "查看健康摘要",
-            "read_sms_code" to "读取短信验证码",
-            "get_logcat" to "读取系统日志",
-            "search_media" to "搜索媒体文件",
-            "search_audio" to "搜索音频",
-            "search_recordings" to "搜索录音",
-            "search_files" to "搜索文件",
-            "search_calendar_events" to "搜索日程",
-            "search_contacts" to "搜索联系人",
-            "search_call_history" to "搜索通话记录",
-            "search_messages" to "搜索短信",
-            "search_downloads" to "搜索下载内容",
-            "search_coloros_notes" to "搜索便签",
-            "search_coloros_recordings" to "搜索录音机",
-            "search_recording_summaries" to "搜索录音摘要",
-            "search_coloros_memories" to "搜索小布记忆",
-            "search_saved_places" to "搜索收藏地点",
-            "search_personal_orders" to "搜索个人订单",
-            "search_qq_chat_images" to "搜索 QQ 聊天图片",
-            "search_wechat_chat_images" to "搜索微信聊天图片",
-            "set_setting" to "修改系统设置",
-            "set_device_state" to "修改设备状态",
-            "app_state_control" to "管理应用状态",
-        )
     }
 }

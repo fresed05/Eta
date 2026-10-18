@@ -107,6 +107,7 @@ data class ThinkingMessageUi(
     val isStreaming: Boolean,
     val elapsedSeconds: Int? = null,
     val collapsed: Boolean = false,
+    val usage: TokenUsageUi? = null,
 ) : AgentChatMessageUi
 
 /**
@@ -142,6 +143,7 @@ data class ToolActivityMessageUi(
     val command: String? = null,
     val resultSummary: String? = null,
     val imageCount: Int = 0,
+    val usage: TokenUsageUi? = null,
 ) : AgentChatMessageUi
 
 enum class ToolActivityStatusUi {

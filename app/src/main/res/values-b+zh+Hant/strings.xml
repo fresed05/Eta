@@ -1085,6 +1085,11 @@
   <string name="context_usage_previous_response">%1$s\n上輪實測</string>
   <string name="context_compaction">上下文壓縮</string>
   <string name="context_compact_action">壓縮上下文</string>
+  <string name="context_compacting">正在壓縮上下文…</string>
+  <string name="context_compacted_success">上下文已壓縮，用量將在下一次模型回應後更新。</string>
+  <string name="context_compacted_failed">上下文壓縮失敗，原始上下文已保留。</string>
+  <string name="context_compacted_interrupted">上下文壓縮已中斷</string>
+  <string name="context_compacted_stopped">上下文壓縮已停止</string>
   <string name="settings_auto_compaction">自動壓縮上下文</string>
   <string name="context_usage_description">內容用量：%1$s</string>
   <string name="memory_budget_summary">每輪最多注入 %1$s 個字元，詳細內容由模型視需要讀取</string>

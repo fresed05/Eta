@@ -153,6 +153,7 @@ internal class AgentLocalTools(
         webTools.close()
         terminalController.interruptAll()
         rootCommandExecutor.close()
+        AgentTaskTools.clearRun(browserRunId)
         githubSkillSource?.close()
         inspectedGitHubSnapshots.clear()
     }
@@ -226,6 +227,7 @@ internal class AgentLocalTools(
                 "skills_list_curated" -> textResult(skillsListCurated())
                 "skills_inspect_github" -> textResult(skillsInspectGitHub(args))
                 "skills_install_from_github" -> textResult(skillsInstallFromGitHub(args))
+                "todo_write", "task_manage", "tasks" -> textResult(AgentTaskTools.execute(browserRunId, args))
                 else -> textResult(
                     errorResult(
                         code = "UNKNOWN_TOOL",

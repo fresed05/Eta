@@ -502,9 +502,23 @@ private fun ContextCompactionMarker(
                 },
             )
             Spacer(modifier = Modifier.width(6.dp))
+            val compactionText = when {
+                message.running -> stringResource(R.string.context_compacting)
+                message.detail.isNullOrBlank() -> stringResource(R.string.context_compaction)
+                message.detail.contains("正在压缩") || message.detail.contains("Compacting") || message.detail.contains("Сжатие") ->
+                    stringResource(R.string.context_compacting)
+                message.detail.contains("已压缩") || message.detail.contains("压缩完成") || message.detail.contains("compacted") || message.detail.contains("сжат") ->
+                    stringResource(R.string.context_compacted_success)
+                message.detail.contains("压缩失败") || message.detail.contains("failed") || message.detail.contains("не удалось") ->
+                    stringResource(R.string.context_compacted_failed)
+                message.detail.contains("中断") || message.detail.contains("interrupted") || message.detail.contains("прервано") ->
+                    stringResource(R.string.context_compacted_interrupted)
+                message.detail.contains("停止") || message.detail.contains("stopped") || message.detail.contains("остановлено") ->
+                    stringResource(R.string.context_compacted_stopped)
+                else -> message.detail
+            }
             Text(
-                text = message.detail?.takeIf(String::isNotBlank)
-                    ?: stringResource(R.string.context_compaction),
+                text = compactionText,
                 style = MiuixTheme.textStyles.footnote1,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 maxLines = 1,
@@ -1063,8 +1077,24 @@ private fun SuggestionChipsRow(
                     modifier = Modifier.size(12.dp),
                     tint = MiuixTheme.colorScheme.primary
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
+            Spacer(modifier = Modifier.width(6.dp))
+            val compactionText = when {
+                message.running -> stringResource(R.string.context_compacting)
+                message.detail.isNullOrBlank() -> stringResource(R.string.context_compaction)
+                message.detail.contains("正在压缩") || message.detail.contains("Compacting") || message.detail.contains("Сжатие") ->
+                    stringResource(R.string.context_compacting)
+                message.detail.contains("已压缩") || message.detail.contains("压缩完成") || message.detail.contains("compacted") || message.detail.contains("сжат") ->
+                    stringResource(R.string.context_compacted_success)
+                message.detail.contains("压缩失败") || message.detail.contains("failed") || message.detail.contains("не удалось") ->
+                    stringResource(R.string.context_compacted_failed)
+                message.detail.contains("中断") || message.detail.contains("interrupted") || message.detail.contains("прервано") ->
+                    stringResource(R.string.context_compacted_interrupted)
+                message.detail.contains("停止") || message.detail.contains("stopped") || message.detail.contains("остановлено") ->
+                    stringResource(R.string.context_compacted_stopped)
+                else -> message.detail
+            }
+            Text(
+                text = compactionText,
                     text = prompt,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurface,

@@ -1205,6 +1205,11 @@
   <string name="data_backup_file_open_failed">Unable to open the selected file</string>
   <string name="context_compaction">Context compaction</string>
   <string name="context_compact_action">Compact context</string>
+  <string name="context_compacting">Compacting context…</string>
+  <string name="context_compacted_success">Context compacted. Usage will update after the next response.</string>
+  <string name="context_compacted_failed">Context compaction failed; original context preserved.</string>
+  <string name="context_compacted_interrupted">Context compaction interrupted</string>
+  <string name="context_compacted_stopped">Context compaction stopped</string>
   <string name="settings_auto_compaction">Automatic context compaction</string>
   <string name="voice_audio_permission">请在 Eta 应用权限中允许麦克风，然后重新唤醒；点击麦克风可打开设置</string>
   <string name="voice_no_speech">没有听清，请点击麦克风重试，或改用键盘输入</string>

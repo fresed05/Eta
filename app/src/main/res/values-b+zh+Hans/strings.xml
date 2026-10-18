@@ -1097,6 +1097,11 @@
   <string name="context_usage_previous_response">%1$s\n上轮实测</string>
   <string name="context_compaction">上下文压缩</string>
   <string name="context_compact_action">压缩上下文</string>
+  <string name="context_compacting">正在压缩上下文…</string>
+  <string name="context_compacted_success">上下文已压缩，用量将在下一次模型响应后更新。</string>
+  <string name="context_compacted_failed">上下文压缩失败，原始上下文已保留。</string>
+  <string name="context_compacted_interrupted">上下文压缩已中断</string>
+  <string name="context_compacted_stopped">上下文压缩已停止</string>
   <string name="settings_auto_compaction">自动压缩上下文</string>
   <string name="context_usage_description">上下文用量：%1$s</string>
   <string name="memory_budget_summary">每轮最多注入 %1$s 字符，详细内容由模型按需读取</string>
