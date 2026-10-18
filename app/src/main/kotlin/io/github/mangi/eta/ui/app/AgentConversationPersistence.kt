@@ -38,11 +38,12 @@ internal class AgentConversationPersistence(initial: AgentConversationStore.Snap
         val messages: List<AgentChatMessageUi>,
         val history: List<AgentModelClient.ConversationMessage>,
         val journal: List<AgentModelClient.ConversationMessage>,
+        val session: io.github.mangi.eta.agent.model.AgentSessionState = io.github.mangi.eta.agent.model.AgentSessionState(),
     ) {
         constructor(state: AgentChatHomeUiState, title: String, updatedAt: Long) : this(
             title, updatedAt, state.reasoningEffort, state.appliedRuntimeRunIds,
             state.roleplay, if (state.roleplay == null) RoleplayMessageState() else state.roleplayMessages,
-            state.modelId, state.messages, state.history, state.journal.ifEmpty { state.history },
+            state.modelId, state.messages, state.history, state.journal.ifEmpty { state.history }, state.session,
         )
 
         fun sameMetadata(other: Content): Boolean =

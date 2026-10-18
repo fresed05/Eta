@@ -1541,4 +1541,35 @@
   <string name="context_reasoning_tokens">思考 Tokens</string>
   <string name="context_cached_tokens">快取命中</string>
   <string name="context_free_tokens">剩餘可用</string>
+  <string name="context_current_title">目前請求上下文</string>
+  <string name="context_instructions_tokens">指令</string>
+  <string name="context_fixed_tokens">工具與已載入技能</string>
+  <string name="context_agent_all_tokens">代理、工具呼叫及結果</string>
+  <string name="context_composition_estimated">分類為實際請求的估算，若有 API 輸入用量則校準至該值。分類百分比按已用上下文計算，空閒按視窗計算。</string>
+  <string name="context_chat_totals_title">整個對話 · 累計 API 用量</string>
+  <string name="context_request_count">模型呼叫（含重試）</string>
+  <string name="context_measured_requests">有輸入及輸出用量的呼叫</string>
+  <string name="context_failed_requests">失敗呼叫</string>
+  <string name="context_compaction_requests">壓縮呼叫（已計入總數）</string>
+  <string name="context_cache_percent">輸入快取佔比</string>
+  <string name="context_cache_formula">快取 % = 累計快取輸入 / 累計輸入 × 100。推理已包含於輸出，不重複相加。</string>
+  <string name="context_totals_incomplete">用量不完整：舊版本或部分 API 回應缺少欄位。僅彙總已知值，不將未知值當作零。</string>
+  <string name="planning_mode_on">計畫模式已開啟：先計畫再執行</string>
+  <string name="planning_mode_off">開啟計畫模式</string>
+  <string name="planning_mode_label">計畫模式</string>
+  <string name="planning_mode_hint">執行前儲存詳細計畫。壓縮上下文後仍保留原始步驟。</string>
+  <string name="planning_mode_normal">一般模式</string>
+  <string name="planning_mode_normal_hint">直接執行，需要時記錄多步驟任務。</string>
+  <string name="todo_panel_empty">尚無已儲存的計畫或任務</string>
+  <string name="todo_panel_empty_hint">todo_write 建立的任務會顯示於此，不受聊天長度影響。開啟計畫模式可先儲存詳細計畫。</string>
+  <string name="todo_panel_cancelled_count">已取消：%1$d</string>
+  <string name="todo_panel_saved_plan">已儲存的計畫</string>
+  <string name="todo_panel_expand">展開任務</string>
+  <string name="todo_panel_collapse">收合任務</string>
+  <string name="todo_panel_original">查看原始計畫及步驟</string>
+  <string name="todo_panel_current">查看目前進度</string>
+  <string name="todo_status_completed">已完成</string>
+  <string name="todo_status_in_progress">進行中</string>
+  <string name="todo_status_cancelled">已取消</string>
+  <string name="todo_status_pending">待執行</string>
 </resources>

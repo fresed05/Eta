@@ -236,7 +236,9 @@ internal class AgentRuntimeRunExecutor(
                 } else routingExecutor.execute(call)
             }
             val completedResponse = AgentModelClient.complete(
-                config = request.config,
+                config = request.config.copy(taskStateJson = request.config.taskStateJson.ifBlank {
+                    io.github.mangi.eta.agent.model.AgentTaskState().encode()
+                }),
                 sessionId = request.effectiveModelSessionId,
                 operationId = request.runId,
                 initialUserMessageId = uiPayload?.promptMessageId(request.runId) ?: "user-${request.runId}",

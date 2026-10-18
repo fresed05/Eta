@@ -311,6 +311,8 @@ internal object AgentRuntimeWire {
         putBoolean(KEY_DEVICE_DIRECT_TOOLS, request.config.deviceDirectTools)
         putBoolean(KEY_DEVICE_SENSITIVE_READ_TOOLS, request.config.deviceSensitiveReadTools)
         putBoolean(KEY_DEVICE_SENSITIVE_ACTION_TOOLS, request.config.deviceSensitiveActionTools)
+        putBoolean("planning_mode", request.config.planningMode)
+        AgentWireText.put(this, "task_state_json", request.config.taskStateJson, payloadDirectory)
         putBoolean(KEY_THINKING_ENABLED, request.config.effectiveReasoningEffort.enablesReasoning)
         putString(KEY_REASONING_EFFORT, request.config.effectiveReasoningEffort.wireValue)
         request.config.reasoningCapabilities?.let {
@@ -458,6 +460,8 @@ internal object AgentRuntimeWire {
                     bundle.getBoolean(KEY_DEVICE_SENSITIVE_READ_TOOLS, false),
                 deviceSensitiveActionTools =
                     bundle.getBoolean(KEY_DEVICE_SENSITIVE_ACTION_TOOLS, false),
+                planningMode = bundle.getBoolean("planning_mode", false),
+                taskStateJson = if (readText) AgentWireText.read(bundle, "task_state_json").orEmpty() else "",
                 thinkingEnabled = bundle.getBoolean(KEY_THINKING_ENABLED),
                 reasoningEffort = if (bundle.containsKey(KEY_REASONING_EFFORT)) {
                     ReasoningEffort.fromWireValue(bundle.getString(KEY_REASONING_EFFORT))
@@ -624,6 +628,14 @@ internal object AgentRuntimeWire {
     /** 将 [AgentEvent] 打包为可跨进程传递的 [Bundle]。 */
     fun eventToBundle(event: AgentEvent): Bundle = Bundle().apply {
         when (event) {
+            is AgentEvent.RequestRecorded -> {
+                putString(KEY_TYPE, "request_recorded")
+                putString("request_record_json", event.record.encode())
+            }
+            is AgentEvent.TasksUpdated -> {
+                putString(KEY_TYPE, "tasks_updated")
+                putString("task_state_json", event.state.encode())
+            }
             is AgentEvent.RunStarted -> {
                 putString(KEY_TYPE, "run_started")
                 putInt("initial_images", event.initialImages)
@@ -774,6 +786,12 @@ internal object AgentRuntimeWire {
 
     /** 将 [Bundle] 还原为 [AgentEvent]，无法识别时返回 null。 */
     fun eventFromBundle(bundle: Bundle): AgentEvent? = when (bundle.getString(KEY_TYPE)) {
+        "request_recorded" -> AgentEvent.RequestRecorded(
+            io.github.mangi.eta.agent.model.AgentModelRequestRecord.decode(bundle.getString("request_record_json").orEmpty()),
+        )
+        "tasks_updated" -> AgentEvent.TasksUpdated(
+            requireNotNull(io.github.mangi.eta.agent.model.AgentTaskState.decode(bundle.getString("task_state_json"))),
+        )
         "run_started" -> AgentEvent.RunStarted(
             initialImages = bundle.getInt("initial_images"),
             initialImageBytes = bundle.getInt("initial_image_bytes"),

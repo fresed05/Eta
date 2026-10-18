@@ -26,7 +26,7 @@ import androidx.room.migration.Migration
         CharacterEntity::class,
         UserPersonaEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = false,
 )
 internal abstract class EtaDatabase : RoomDatabase() {
@@ -65,6 +65,7 @@ internal abstract class EtaDatabase : RoomDatabase() {
                         MIGRATION_19_20,
                         MIGRATION_20_21,
                         MIGRATION_21_22,
+                        MIGRATION_22_23,
                     )
                     .addCallback(object : Callback() {
                         override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) { createTextChunkCleanup(db) }
@@ -159,6 +160,10 @@ internal abstract class EtaDatabase : RoomDatabase() {
                     "last_protocol_version TEXT, " +
                     "PRIMARY KEY(id))"
             )
+        }
+
+        internal val MIGRATION_22_23 = Migration(22, 23) { database ->
+            database.execSQL("ALTER TABLE conversation_context_checkpoints ADD COLUMN session_json TEXT NOT NULL DEFAULT ''")
         }
 
         internal val MIGRATION_17_18 = Migration(17, 18) { database ->

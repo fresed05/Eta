@@ -108,6 +108,31 @@ internal object AgentModelClient {
         onEvent: (AgentEvent) -> Unit = {}
     ): ModelResponse.Text {
         config.validate()
+        var savedTasks = AgentTaskState.decode(config.taskStateJson) ?: AgentTaskState()
+        val observedProvider = AgentRequestObserver(provider, operationId, onEvent)
+        var planRequired = config.planningMode && (savedTasks.plan.isBlank() ||
+            savedTasks.todos.none { it.status == "pending" || it.status == "in_progress" })
+        val taskAwareExecutor = ToolExecutor { call ->
+            if (call.name in setOf("todo_write", "task_manage", "tasks")) {
+                val args = JSONObject(call.argumentsJson)
+                val outcome = io.github.mangi.eta.agent.tool.AgentTaskTools.reduce(savedTasks, args)
+                if (planRequired && outcome.result.optBoolean("ok") &&
+                    (outcome.state.plan.isBlank() || outcome.state.todos.isEmpty())) {
+                    ToolResult(JSONObject().put("ok", false).put("code", "PLAN_REQUIRED")
+                        .put("message", "Save a detailed plan and non-empty todos with todo_write before executing the task.").toString())
+                } else {
+                    if (outcome.result.optBoolean("ok")) {
+                        if (outcome.state.plan.isNotBlank() && outcome.state.todos.isNotEmpty()) planRequired = false
+                        savedTasks = outcome.state
+                        onEvent(AgentEvent.TasksUpdated(savedTasks))
+                    }
+                    ToolResult(outcome.result.toString())
+                }
+            } else if (planRequired) {
+                ToolResult(JSONObject().put("ok", false).put("code", "PLAN_REQUIRED")
+                    .put("message", "Planning mode: first save plan and todos with todo_write, then execute the steps.").toString())
+            } else toolExecutor.execute(call)
+        }
         val initialCapabilities = capabilitiesProvider()
         val messages = AgentPromptBuilder.buildInitialMessages(
             config,
@@ -175,8 +200,9 @@ internal object AgentModelClient {
             config = config,
             messages = messages,
             tools = tools,
-            provider = provider,
-            toolExecutor = toolExecutor,
+            provider = observedProvider,
+            toolExecutor = taskAwareExecutor,
+            taskStateProvider = { savedTasks },
             runController = runController,
             traceFormatter = traceFormatter,
             onEvent = onEvent,
@@ -266,6 +292,8 @@ internal object AgentModelClient {
         val modelDisplayName: String = "",
         val contextWindow: Int? = null,
         val systemPrompt: String,
+        val planningMode: Boolean = false,
+        val taskStateJson: String = "",
         val anthropicVersion: String = AnthropicProviderSetting.DEFAULT_ANTHROPIC_VERSION,
         val openAiEndpointMode: String = OpenAiEndpointMode.CHAT_COMPLETIONS,
         val hostedWebSearchEnabled: Boolean = false,

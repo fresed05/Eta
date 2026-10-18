@@ -66,6 +66,8 @@ internal class AgentRunMessageProjector(
         is AgentEvent.RunFinished -> finalizeText(runId, finalizeThinking(runId, messages))
         is AgentEvent.UserSupplementReceived,
         is AgentEvent.RunStarted,
+        is AgentEvent.RequestRecorded,
+        is AgentEvent.TasksUpdated,
         is AgentEvent.ProviderRequestStarted,
         is AgentEvent.ProviderResponseStarted,
         is AgentEvent.ToolImagesAttached,

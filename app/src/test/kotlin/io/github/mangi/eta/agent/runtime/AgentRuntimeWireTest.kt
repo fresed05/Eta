@@ -621,6 +621,11 @@ class AgentRuntimeWireTest {
                 reasoningContent = "完整思考内容",
                 toolNames = listOf("observe_screen", "input_text"),
             ),
+            AgentEvent.RequestRecorded(io.github.mangi.eta.agent.model.AgentModelRequestRecord(
+                "run-request-1", "CHAT", "completed", AgentTokenUsage(inputTokens = 100, outputTokens = 10, cachedTokens = 30),
+                io.github.mangi.eta.agent.model.AgentContextComposition(10, 20, 30, 40),
+            )),
+            AgentEvent.TasksUpdated(io.github.mangi.eta.agent.model.AgentTaskState(2, "Original plan")),
             AgentEvent.UsageReceived(
                 round = 2,
                 usage = AgentTokenUsage(

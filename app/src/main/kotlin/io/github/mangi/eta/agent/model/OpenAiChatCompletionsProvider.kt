@@ -387,7 +387,7 @@ internal object OpenAiChatCompletionsProvider : AgentProviderClient {
     private fun parseUsage(chunk: JSONObject): AgentTokenUsage? {
         val usage = chunk.optJSONObject("usage") ?: return null
         return AgentTokenUsage(
-            contextTokens = usage.firstInt("total_tokens"),
+            contextTokens = usage.firstInt("prompt_tokens", "input_tokens"),
             inputTokens = usage.firstInt("prompt_tokens", "input_tokens"),
             outputTokens = usage.firstInt("completion_tokens", "output_tokens"),
             reasoningTokens = usage.firstNestedInt(
@@ -398,7 +398,8 @@ internal object OpenAiChatCompletionsProvider : AgentProviderClient {
             cachedTokens = usage.firstNestedInt(
                 "prompt_tokens_details",
                 childKey = "cached_tokens"
-            ) ?: usage.firstInt("cache_read_input_tokens")
+            ) ?: usage.firstNestedInt("input_tokens_details", childKey = "cached_tokens")
+                ?: usage.firstInt("prompt_cache_hit_tokens", "cache_read_input_tokens")
         ).takeUnless { it.isEmpty }
     }
 

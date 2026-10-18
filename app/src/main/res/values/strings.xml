@@ -1587,4 +1587,35 @@
   <string name="context_reasoning_tokens">Reasoning</string>
   <string name="context_cached_tokens">Cached</string>
   <string name="context_free_tokens">Free</string>
+  <string name="context_current_title">Current request context</string>
+  <string name="context_instructions_tokens">Instructions</string>
+  <string name="context_fixed_tokens">Tools and loaded skills</string>
+  <string name="context_agent_all_tokens">Agent, tool calls and results</string>
+  <string name="context_composition_estimated">Category counts are estimates of the actual request, calibrated to API input usage when available. Percentages are shares of used context; free space is a share of the window.</string>
+  <string name="context_chat_totals_title">Entire chat · cumulative API usage</string>
+  <string name="context_request_count">Model calls, including retries</string>
+  <string name="context_measured_requests">Calls with input and output usage</string>
+  <string name="context_failed_requests">Failed calls</string>
+  <string name="context_compaction_requests">Compaction calls, included above</string>
+  <string name="context_cache_percent">Cached input share</string>
+  <string name="context_cache_formula">Cache % = total cached input / total input × 100. Reasoning is part of output, not added twice.</string>
+  <string name="context_totals_incomplete">Partial usage: older builds or some provider responses have missing fields. Known values are summed; unknown values are not treated as zero.</string>
+  <string name="planning_mode_on">Plan mode enabled: plan first, then execute</string>
+  <string name="planning_mode_off">Enable plan mode</string>
+  <string name="planning_mode_label">Plan mode</string>
+  <string name="planning_mode_hint">A detailed plan is saved before execution. Steps remain available after context compaction.</string>
+  <string name="planning_mode_normal">Normal mode</string>
+  <string name="planning_mode_normal_hint">Work directly; track multi-step tasks when needed.</string>
+  <string name="todo_panel_empty">No saved plan or tasks yet</string>
+  <string name="todo_panel_empty_hint">Tasks created with todo_write appear here, independently of chat length. Enable plan mode to save a detailed plan first.</string>
+  <string name="todo_panel_cancelled_count">Cancelled: %1$d</string>
+  <string name="todo_panel_saved_plan">Saved plan</string>
+  <string name="todo_panel_expand">Expand tasks</string>
+  <string name="todo_panel_collapse">Collapse tasks</string>
+  <string name="todo_panel_original">Show original plan and steps</string>
+  <string name="todo_panel_current">Show current progress</string>
+  <string name="todo_status_completed">Completed</string>
+  <string name="todo_status_in_progress">In progress</string>
+  <string name="todo_status_cancelled">Cancelled</string>
+  <string name="todo_status_pending">Pending</string>
 </resources>

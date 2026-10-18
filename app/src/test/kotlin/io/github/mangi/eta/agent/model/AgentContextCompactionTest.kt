@@ -95,6 +95,23 @@ class AgentContextCompactionTest {
     }
 
     @Test
+    fun protectedPlanIsNotSentToSummarizerAndIsCopiedVerbatim() {
+        val state = AgentTaskState(7, "EXACT ORIGINAL PLAN\nKeep every character.",
+            listOf(AgentTaskItem("1", "original step")), listOf(AgentTaskItem("1", "original step", "in_progress")))
+        val messages = jsonHistory()
+        val protected = JSONObject().put("role", "system").put("content", state.prompt())
+            .put("_eta_protected_tasks", true).put("_eta_context_category", "agent")
+        val source = JSONArray().put(messages.getJSONObject(0)).put(protected)
+        for (i in 1 until messages.length()) source.put(messages.getJSONObject(i))
+        val compacted = AgentContextCompactor(config, provider { request, _ ->
+            assertFalse(request.messages.toString().contains("EXACT ORIGINAL PLAN"))
+            response("Short summary of historical work.")
+        }, AgentRunController()).compact(source, 2, emptySet())
+        assertEquals(protected.toString(), compacted.getJSONObject(1).toString())
+        assertEquals(state.prompt(), compacted.getJSONObject(1).getString("content"))
+    }
+
+    @Test
     fun manualCompactionDoesNotCreateUserOrAssistantTranscript() {
         val result = AgentModelClient.complete(
             config, "", AgentModelClient.ToolExecutor { error("不应执行工具") },

@@ -37,22 +37,26 @@ internal data class AgentModelOptionUi(
 internal data class AgentContextUsageUi(
     val contextTokens: Int?,
     val contextWindow: Int?,
-    val inputTokens: Int? = null,
-    val outputTokens: Int? = null,
-    val reasoningTokens: Int? = null,
-    val cachedTokens: Int? = null,
+    val inputTokens: Long? = null,
+    val outputTokens: Long? = null,
+    val reasoningTokens: Long? = null,
+    val cachedTokens: Long? = null,
     val userTokens: Int? = null,
     val assistantTokens: Int? = null,
     val toolTokens: Int? = null,
     val systemTokens: Int? = null,
+    val requestCount: Int = 0,
+    val measuredRequests: Int = 0,
+    val failedRequests: Int = 0,
+    val compactionRequests: Int = 0,
+    val usageIncomplete: Boolean = false,
+    val cacheIncomplete: Boolean = false,
+    val compositionEstimated: Boolean = true,
 ) {
-    val progress: Float?
-        get() = contextUsageProgress(contextTokens, contextWindow)
-
-    val cachePercent: Float?
-        get() = if (inputTokens != null && inputTokens > 0 && cachedTokens != null && cachedTokens > 0) {
-            ((cachedTokens.toFloat() / inputTokens.toFloat()) * 100f).coerceIn(0f, 100f)
-        } else null
+    val progress: Float? get() = contextUsageProgress(contextTokens, contextWindow)
+    // Cache is a subset of input. Output and reasoning must never enter this denominator.
+    val cachePercent: Float? get() = if (inputTokens != null && inputTokens > 0 && cachedTokens != null && !cacheIncomplete)
+        (100.0 * cachedTokens / inputTokens).toFloat().coerceIn(0f, 100f) else null
 }
 
 internal object AgentModelPickerProjector {
@@ -123,65 +127,48 @@ internal fun defaultExpandedModelProviderIds(selectedModel: AgentModelOptionUi?)
 internal fun latestContextUsage(
     messages: List<AgentChatMessageUi>,
     selectedModel: AgentModelOptionUi?,
+    session: io.github.mangi.eta.agent.model.AgentSessionState = io.github.mangi.eta.agent.model.AgentSessionState(),
 ): AgentContextUsageUi {
-    var latestUsage: TokenUsageUi? = null
-    for (message in messages.asReversed()) {
-        when (message) {
-            is AgentMessageUi -> if (message.usage?.contextTokens != null) {
-                latestUsage = message.usage
-                break
+    val requests = session.requests
+    val latest = requests.lastOrNull { it.purpose == "CHAT" }
+    val composition = latest?.composition?.takeUnless { session.contextInvalidated }
+    val latestInput = latest?.usage?.inputTokens
+    // Compatibility only: old usage was copied to several UI blocks, so it cannot be safely summed.
+    var legacyContext: Int? = null
+    if (requests.isEmpty() && !session.contextInvalidated) {
+        for (message in messages.asReversed()) {
+            if (message is SystemNoticeMessageUi && message.code == SystemNoticeCode.ContextCompaction) break
+            val usage = when (message) {
+                is AgentMessageUi -> message.usage
+                is ThinkingMessageUi -> message.usage
+                is ToolActivityMessageUi -> message.usage
+                else -> null
             }
-            is ThinkingMessageUi -> if (message.usage?.contextTokens != null) {
-                latestUsage = message.usage
-                break
-            }
-            is ToolActivityMessageUi -> if (message.usage?.contextTokens != null) {
-                latestUsage = message.usage
-                break
-            }
-            is SystemNoticeMessageUi -> if (message.code == SystemNoticeCode.ContextCompaction) {
-                return AgentContextUsageUi(null, selectedModel?.contextWindow)
-            }
-            else -> Unit
+            legacyContext = usage?.inputTokens ?: usage?.contextTokens
+            if (legacyContext != null) break
         }
     }
-
-    if (latestUsage == null || latestUsage.contextTokens == null) {
-        return AgentContextUsageUi(null, selectedModel?.contextWindow)
+    fun sum(selector: (io.github.mangi.eta.agent.runtime.AgentTokenUsage) -> Int?): Long? {
+        val values = requests.mapNotNull { it.usage?.let(selector) }
+        return if (values.isEmpty()) null else values.sumOf { it.coerceAtLeast(0).toLong() }
     }
-
-    var userChars = 0
-    var assistantChars = 0
-    var toolChars = 0
-
-    messages.forEach { msg ->
-        when (msg) {
-            is UserMessageUi -> userChars += msg.content.length
-            is AgentMessageUi -> assistantChars += msg.content.length
-            is ThinkingMessageUi -> assistantChars += msg.content.length
-            is ToolActivityMessageUi -> {
-                toolChars += msg.argumentsSummary.length + (msg.resultSummary?.length ?: 0) + (msg.command?.length ?: 0)
-            }
-            else -> Unit
-        }
-    }
-
-    val totalChars = (userChars + assistantChars + toolChars).coerceAtLeast(1)
-    val totalContext = latestUsage.contextTokens
-    val rawUserTokens = ((userChars.toDouble() / totalChars.toDouble()) * totalContext).toInt()
-    val rawAssistantTokens = ((assistantChars.toDouble() / totalChars.toDouble()) * totalContext).toInt()
-    val rawToolTokens = totalContext - rawUserTokens - rawAssistantTokens
-
     return AgentContextUsageUi(
-        contextTokens = latestUsage.contextTokens,
+        contextTokens = if (session.contextInvalidated) null else latestInput ?: composition?.total ?: legacyContext,
         contextWindow = selectedModel?.contextWindow,
-        inputTokens = latestUsage.inputTokens,
-        outputTokens = latestUsage.outputTokens,
-        reasoningTokens = latestUsage.reasoningTokens,
-        cachedTokens = latestUsage.cachedTokens,
-        userTokens = rawUserTokens.coerceAtLeast(0),
-        assistantTokens = rawAssistantTokens.coerceAtLeast(0),
-        toolTokens = rawToolTokens.coerceAtLeast(0),
+        inputTokens = sum { it.inputTokens },
+        outputTokens = sum { it.outputTokens },
+        reasoningTokens = sum { it.reasoningTokens },
+        cachedTokens = sum { it.cachedTokens },
+        systemTokens = composition?.instructions,
+        toolTokens = composition?.toolsAndSkills,
+        userTokens = composition?.user,
+        assistantTokens = composition?.agent,
+        requestCount = requests.size,
+        measuredRequests = requests.count { it.usage?.inputTokens != null && it.usage.outputTokens != null },
+        failedRequests = requests.count { it.status == "failed" },
+        compactionRequests = requests.count { it.purpose == "COMPACTION" },
+        usageIncomplete = session.legacyUsageIncomplete || requests.any { it.usage?.inputTokens == null || it.usage.outputTokens == null },
+        cacheIncomplete = session.legacyUsageIncomplete || requests.any { it.usage?.cachedTokens == null || it.usage.inputTokens == null },
     )
 }
 
@@ -212,7 +199,10 @@ internal fun formatContextUsage(
     }
 }
 
-internal fun formatCompactTokenCount(value: Int, locale: Locale = Locale.getDefault()): String {
+internal fun formatCompactTokenCount(value: Int, locale: Locale = Locale.getDefault()): String =
+    formatCompactTokenCount(value.toLong(), locale)
+
+internal fun formatCompactTokenCount(value: Long, locale: Locale = Locale.getDefault()): String {
     val absolute = kotlin.math.abs(value.toLong())
     val divisor = when {
         absolute >= 1_000_000 -> 1_000_000.0

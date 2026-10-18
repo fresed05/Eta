@@ -4,6 +4,7 @@ import io.github.mangi.eta.data.model.ReasoningEffort
 
 sealed interface AgentHomeAction {
     data object CompactContext : AgentHomeAction
+    data class PlanningModeChanged(val enabled: Boolean) : AgentHomeAction
     data class ReasoningEffortChanged(val effort: ReasoningEffort) : AgentHomeAction
     data class ModelSelected(val modelId: String) : AgentHomeAction
     data class SubmitMessage(val text: String) : AgentHomeAction

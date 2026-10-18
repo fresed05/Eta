@@ -1,5 +1,6 @@
 package io.github.mangi.eta.agent.runtime
 
+@kotlinx.serialization.Serializable
 internal data class AgentTokenUsage(
     val contextTokens: Int? = null,
     val inputTokens: Int? = null,

@@ -621,6 +621,12 @@ internal class AgentAppState(
         return runId
     }
 
+    fun updatePlanningMode(enabled: Boolean) {
+        if (homeState.isStreaming) return
+        updateCurrentConversation(homeState.copy(session = homeState.session.copy(planningMode = enabled)))
+        if (selectedConversationId != null) persistConversations()
+    }
+
     fun updateThinkingEnabled(enabled: Boolean) {
         updateReasoningEffort(ReasoningEffort.fromLegacy(enabled))
     }
@@ -1182,6 +1188,8 @@ internal class AgentAppState(
                     agentBooleanForUi(Prefs.Keys.AGENT_DEVICE_SENSITIVE_READ_TOOLS),
                 deviceSensitiveActionTools =
                     agentBooleanForUi(Prefs.Keys.AGENT_DEVICE_SENSITIVE_ACTION_TOOLS),
+                planningMode = state.session.planningMode,
+                taskStateJson = state.session.tasks.encode(),
                 thinkingEnabled = permittedReasoningEffort.enablesReasoning,
                 reasoningEffort = permittedReasoningEffort,
             )
@@ -1520,6 +1528,23 @@ internal class AgentAppState(
         event: AgentEvent,
         persistSupplement: Boolean = true,
     ) {
+        if (event is AgentEvent.RequestRecorded || event is AgentEvent.TasksUpdated ||
+            event is AgentEvent.ContextCompaction && event.phase == AgentEvent.ContextCompaction.PHASE_COMPLETED) {
+            val id = conversationIdForRun(runId)
+            val current = conversationsById[id]
+            if (id != null && current != null) {
+                val session = when (event) {
+                    is AgentEvent.RequestRecorded -> current.session.withRequest(event.record)
+                    is AgentEvent.TasksUpdated -> current.session.withTasks(event.state)
+                    else -> current.session.copy(contextInvalidated = true)
+                }
+                if (session != current.session) {
+                    updateConversation(id, current.copy(session = session), updateTimestamp = false)
+                    if (persistSupplement) persistConversations()
+                }
+            }
+            if (event !is AgentEvent.ContextCompaction) return
+        }
         if (isReplyRewrite(runId)) {
             if (event is AgentEvent.RunStarted && runId in stopRequestedRunIds) scope.launch(Dispatchers.IO) {
                 AgentRuntimeClient(appContext, AndroidAgentLogger).cancelRun(runId)

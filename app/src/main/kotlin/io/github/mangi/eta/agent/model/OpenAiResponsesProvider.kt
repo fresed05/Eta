@@ -599,7 +599,7 @@ internal object OpenAiResponsesProvider : AgentProviderClient {
     private fun parseUsage(usage: JSONObject?): AgentTokenUsage? {
         usage ?: return null
         return AgentTokenUsage(
-            contextTokens = usage.intValue("total_tokens"),
+            contextTokens = usage.intValue("input_tokens", "prompt_tokens"),
             inputTokens = usage.intValue("input_tokens", "prompt_tokens"),
             outputTokens = usage.intValue("output_tokens", "completion_tokens"),
             cachedTokens = usage.optJSONObject("input_tokens_details")?.intValue("cached_tokens")

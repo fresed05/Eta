@@ -130,6 +130,8 @@ internal fun AgentChatBody(
     isCompacting: Boolean,
     input: String,
     isStreaming: Boolean,
+    session: io.github.mangi.eta.agent.model.AgentSessionState,
+    onPlanningModeChange: (Boolean) -> Unit,
     reasoningEffort: ReasoningEffort,
     availableReasoningEfforts: List<ReasoningEffort>,
     pendingImages: List<PendingImageUi>,
@@ -165,8 +167,8 @@ internal fun AgentChatBody(
     val imeBottomPx = WindowInsets.ime.getBottom(density)
     val isKeyboardVisible = imeBottomPx > 0
     val browserSnapshot by AgentBrowserSession.snapshots.collectAsState()
-    val contextUsage = remember(messages, modelPickerState.selectedModel) {
-        latestContextUsage(messages, modelPickerState.selectedModel)
+    val contextUsage = remember(messages, modelPickerState.selectedModel, session) {
+        latestContextUsage(messages, modelPickerState.selectedModel, session)
     }
 
     val visibleMessages = remember(messages, messageEdit?.targetMessageId, messageEdit?.preserveFollowingMessages) {
@@ -222,6 +224,8 @@ internal fun AgentChatBody(
             isCompacting = isCompacting,
             contextUsage = contextUsage,
             isStreaming = isStreaming,
+            session = session,
+            onPlanningModeChange = onPlanningModeChange,
             reasoningEffort = reasoningEffort,
             availableReasoningEfforts = availableReasoningEfforts,
             pendingImages = pendingImages,
@@ -274,6 +278,8 @@ private fun AgentChatScaffold(
     isCompacting: Boolean,
     contextUsage: AgentContextUsageUi,
     isStreaming: Boolean,
+    session: io.github.mangi.eta.agent.model.AgentSessionState,
+    onPlanningModeChange: (Boolean) -> Unit,
     reasoningEffort: ReasoningEffort,
     availableReasoningEfforts: List<ReasoningEffort>,
     pendingImages: List<PendingImageUi>,
@@ -331,8 +337,10 @@ private fun AgentChatScaffold(
                 modelPickerState = modelPickerState,
                 isCompacting = isCompacting,
                 contextUsage = contextUsage,
-                showContextUsage = hasMessages,
+                showContextUsage = hasMessages || session.requests.isNotEmpty(),
                 isStreaming = isStreaming,
+                session = session,
+                onPlanningModeChange = onPlanningModeChange,
                 reasoningEffort = reasoningEffort,
                 availableReasoningEfforts = availableReasoningEfforts,
                 pendingImages = pendingImages,
@@ -875,6 +883,8 @@ private fun AgentChatBottomBar(
     contextUsage: AgentContextUsageUi,
     showContextUsage: Boolean,
     isStreaming: Boolean,
+    session: io.github.mangi.eta.agent.model.AgentSessionState,
+    onPlanningModeChange: (Boolean) -> Unit,
     reasoningEffort: ReasoningEffort,
     availableReasoningEfforts: List<ReasoningEffort>,
     pendingImages: List<PendingImageUi>,
@@ -952,8 +962,13 @@ private fun AgentChatBottomBar(
                 .navigationBarsPadding()
                 .padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
         ) {
+            AgentPlanningModeSelector(
+                enabled = session.planningMode,
+                changingAllowed = !isStreaming && !isCompacting,
+                onChange = onPlanningModeChange,
+            )
             AgentActiveTodoPanel(
-                messages = visibleMessages,
+                tasks = session.tasks,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
@@ -965,6 +980,8 @@ private fun AgentChatBottomBar(
                 contextUsage = contextUsage,
                 showContextUsage = showContextUsage,
                 isStreaming = isStreaming,
+                planningMode = session.planningMode,
+                onPlanningModeChange = onPlanningModeChange,
                 reasoningEffort = reasoningEffort,
                 availableReasoningEfforts = availableReasoningEfforts,
                 pendingImages = pendingImages,

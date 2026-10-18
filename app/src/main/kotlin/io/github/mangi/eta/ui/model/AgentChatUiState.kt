@@ -27,6 +27,7 @@ internal data class AgentChatUiState(
     val roleplayMessages: RoleplayMessageState = RoleplayMessageState(),
     /** 会话最近一次发送使用的本地 Model.id；null 表示尚未绑定，跟随默认模型。 */
     val modelId: String? = null,
+    val session: io.github.mangi.eta.agent.model.AgentSessionState = io.github.mangi.eta.agent.model.AgentSessionState(),
 ) {
     val canCompactContext: Boolean get() = !isStreaming && messageEdit == null && history.any {
         !it.contextSummary && (it.role == "assistant" || it.role == "tool")

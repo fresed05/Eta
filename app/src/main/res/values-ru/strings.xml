@@ -1576,4 +1576,35 @@
   <string name="context_reasoning_tokens">Рассуждения</string>
   <string name="context_cached_tokens">Кэш</string>
   <string name="context_free_tokens">Свободно</string>
+  <string name="context_current_title">Контекст текущего запроса</string>
+  <string name="context_instructions_tokens">Инструкции</string>
+  <string name="context_fixed_tokens">Инструменты и загруженные скиллы</string>
+  <string name="context_agent_all_tokens">Агент, вызовы и ответы инструментов</string>
+  <string name="context_composition_estimated">Категории — оценка реального запроса, нормированная по входным токенам API, если они известны. Доли категорий — от занятого контекста; свободно — от окна.</string>
+  <string name="context_chat_totals_title">Весь чат · накопительная статистика API</string>
+  <string name="context_request_count">Вызовов модели, включая повторы</string>
+  <string name="context_measured_requests">С данными входа и выхода</string>
+  <string name="context_failed_requests">Неуспешных вызовов</string>
+  <string name="context_compaction_requests">На сжатие, включены выше</string>
+  <string name="context_cache_percent">Доля кэшированного входа</string>
+  <string name="context_cache_formula">Кэш % = Σ кэшированного входа / Σ входа × 100. Рассуждения входят в выход и повторно не прибавляются.</string>
+  <string name="context_totals_incomplete">Статистика неполная: старая версия или часть ответов API не сохранили все поля. Суммируются известные значения; неизвестные не считаются нулём.</string>
+  <string name="planning_mode_on">Режим плана включён: сначала план, затем выполнение</string>
+  <string name="planning_mode_off">Включить режим плана</string>
+  <string name="planning_mode_label">Режим плана</string>
+  <string name="planning_mode_hint">Перед выполнением сохраняется подробный план. Шаги остаются доступны после сжатия контекста.</string>
+  <string name="planning_mode_normal">Обычный режим</string>
+  <string name="planning_mode_normal_hint">Выполнять сразу; для сложных задач вести список шагов.</string>
+  <string name="todo_panel_empty">План и задачи ещё не созданы</string>
+  <string name="todo_panel_empty_hint">Задачи из todo_write появляются здесь независимо от длины чата. Включите режим плана, чтобы сначала сохранить подробный план.</string>
+  <string name="todo_panel_cancelled_count">Отменено: %1$d</string>
+  <string name="todo_panel_saved_plan">Сохранённый план</string>
+  <string name="todo_panel_expand">Развернуть задачи</string>
+  <string name="todo_panel_collapse">Свернуть задачи</string>
+  <string name="todo_panel_original">Показать исходный план и шаги</string>
+  <string name="todo_panel_current">Показать текущий прогресс</string>
+  <string name="todo_status_completed">Выполнено</string>
+  <string name="todo_status_in_progress">Выполняется</string>
+  <string name="todo_status_cancelled">Отменено</string>
+  <string name="todo_status_pending">Ожидает</string>
 </resources>

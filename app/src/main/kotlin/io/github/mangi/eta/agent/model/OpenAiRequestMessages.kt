@@ -28,6 +28,8 @@ internal object OpenAiRequestMessages {
                     remove("_eta_observation")
                     remove("_eta_message_id")
                     remove("_eta_character_profile")
+                    remove("_eta_context_category")
+                    remove("_eta_protected_tasks")
                 })
             }
         }

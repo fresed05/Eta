@@ -107,7 +107,7 @@ internal object AgentConversationStore {
                                 phase = "write_metadata"
                                 dao.insertConversations(listOf(row))
                             }
-                            if (old == null || state.history != old.history || state.journal != old.journal) {
+                            if (old == null || state.history != old.history || state.journal != old.journal || state.session != old.session) {
                                 val missing = dao.contextCheckpointRow(id) == null
                                 phase = "encode_history"
                                 val history = if (missing || old == null || state.history != old.history) {
@@ -118,7 +118,8 @@ internal object AgentConversationStore {
                                     AgentConversationCodec.encodeTranscriptForStorage(state.journal)
                                 } else null
                                 phase = "write_checkpoint"
-                                dao.updateContextCheckpoint(id, history, journal)
+                                val session = if (missing || old == null || state.session != old.session) state.session.encode() else null
+                                dao.updateContextCheckpoint(id, history, journal, session)
                             }
                             val oldMessages = old?.messages.orEmpty()
                             var prefix = 0
@@ -196,6 +197,15 @@ internal object AgentConversationStore {
                 } ?: RoleplayMessageState(),
                 journal = AgentConversationCodec.decodeTranscript(checkpoint?.journalJson),
                 messages = restored,
+                session = io.github.mangi.eta.agent.model.AgentSessionState.decode(checkpoint?.sessionJson).let {
+                    if (checkpoint?.sessionJson.isNullOrBlank() && restored.isNotEmpty()) it.copy(
+                        legacyUsageIncomplete = true,
+                        tasks = io.github.mangi.eta.agent.model.AgentTaskHistoryRecovery.recover(
+                            AgentConversationCodec.decodeTranscript(checkpoint?.journalJson).ifEmpty {
+                                AgentConversationCodec.decodeTranscript(checkpoint?.historyJson)
+                            }),
+                    ) else it
+                },
                 history = AgentConversationCodec.decodeTranscript(
                     checkpoint?.historyJson
                 )

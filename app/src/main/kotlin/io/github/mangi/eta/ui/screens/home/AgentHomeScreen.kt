@@ -27,6 +27,8 @@ internal fun AgentHomeScreen(
     key(chatConversationCompositionKey(conversationKey)) {
         AgentChatBody(
             messages = state.messages,
+            session = state.session,
+            onPlanningModeChange = { onAction(AgentHomeAction.PlanningModeChanged(it)) },
             modelPickerState = modelPickerState,
             isCompacting = state.isCompacting,
             input = state.input,

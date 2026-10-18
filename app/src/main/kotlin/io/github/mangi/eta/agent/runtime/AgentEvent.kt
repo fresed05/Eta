@@ -34,6 +34,14 @@ internal sealed interface AgentEvent {
         }
     }
 
+    data class RequestRecorded(val record: io.github.mangi.eta.agent.model.AgentModelRequestRecord) : AgentEvent {
+        override fun toLogLine(): String = "request_recorded purpose=${record.purpose}, status=${record.status}"
+    }
+
+    data class TasksUpdated(val state: io.github.mangi.eta.agent.model.AgentTaskState) : AgentEvent {
+        override fun toLogLine(): String = "tasks_updated revision=${state.revision}, count=${state.todos.size}"
+    }
+
     data class RunStarted(
         val initialImages: Int,
         val initialImageBytes: Int,

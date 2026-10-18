@@ -35,7 +35,7 @@ class OpenAiChatCompletionsProviderTest {
                 output.flush()
                 endedBeforeTail.set(textEnded.await(5, TimeUnit.SECONDS))
                 check(endedBeforeTail.get())
-                output.write((usageChunk(JSONObject().put("total_tokens", 18)) + "data: [DONE]\n\n").toByteArray())
+                output.write((usageChunk(JSONObject().put("total_tokens", 18).put("prompt_tokens", 10).put("completion_tokens", 8)) + "data: [DONE]\n\n").toByteArray())
             },
         ) { baseUrl ->
             val events = mutableListOf<ProviderEvent>()
@@ -56,7 +56,7 @@ class OpenAiChatCompletionsProviderTest {
                 .filter { it.kind == AssistantBlockKind.THINKING }.map { it.delta })
             assertEquals(listOf(AssistantBlockKind.THINKING, AssistantBlockKind.TEXT),
                 events.filterIsInstance<ProviderEvent.BlockEnd>().map { it.kind })
-            assertEquals(18, events.filterIsInstance<ProviderEvent.Usage>().single().usage.contextTokens)
+            assertEquals(10, events.filterIsInstance<ProviderEvent.Usage>().single().usage.contextTokens)
         }
     }
 
@@ -387,7 +387,7 @@ class OpenAiChatCompletionsProviderTest {
             assertEquals("结果", response.assistantMessage.getString("content"))
             assertEquals("先分析", response.assistantMessage.getString("reasoning_content"))
             val parsedUsage = events.filterIsInstance<ProviderEvent.Usage>().single().usage
-            assertEquals(18, parsedUsage.contextTokens)
+            assertEquals(10, parsedUsage.contextTokens)
             assertEquals(10, parsedUsage.inputTokens)
             assertEquals(8, parsedUsage.outputTokens)
             assertEquals(5, parsedUsage.reasoningTokens)

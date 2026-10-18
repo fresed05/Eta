@@ -5,6 +5,9 @@ import java.util.Locale
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -361,216 +364,85 @@ private fun ContextUsageTooltipDetails(
     locale: Locale,
     summary: String,
 ) {
-    val totalContext = usage.contextTokens
-    val maxWindow = usage.contextWindow
-
-    if (totalContext == null || maxWindow == null || maxWindow <= 0) {
-        Text(
-            text = when {
-                maxWindow == null -> summary
-                else -> stringResource(R.string.context_usage_after_response)
-            },
-            color = MiuixTheme.colorScheme.onSurface,
-            style = MiuixTheme.textStyles.body2,
-        )
-        return
-    }
-
-    val userTok = usage.userTokens ?: 0
-    val asstTok = usage.assistantTokens ?: 0
-    val toolTok = usage.toolTokens ?: 0
-    val freeTok = (maxWindow - totalContext).coerceAtLeast(0)
-
-    val colorUser = Color(0xFF388AF6)
-    val colorAssistant = Color(0xFF10B981)
-    val colorTools = Color(0xFFF59E0B)
-    val colorFree = MiuixTheme.colorScheme.secondaryContainer
-
+    val categories = listOf(
+        Triple(R.string.context_instructions_tokens, usage.systemTokens, Color(0xFF8B5CF6)),
+        Triple(R.string.context_fixed_tokens, usage.toolTokens, Color(0xFFF59E0B)),
+        Triple(R.string.context_user_tokens, usage.userTokens, Color(0xFF388AF6)),
+        Triple(R.string.context_agent_all_tokens, usage.assistantTokens, Color(0xFF10B981)),
+    )
+    val limit = usage.contextWindow?.takeIf { it > 0 }
+    val used = usage.contextTokens
+    val free = if (used != null && limit != null) (limit - used).coerceAtLeast(0) else null
+    val hasComposition = categories.all { it.second != null }
+    val freeColor = MiuixTheme.colorScheme.secondaryContainer
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            text = summary,
-            color = MiuixTheme.colorScheme.onSurface,
-            style = MiuixTheme.textStyles.body2,
-            fontWeight = FontWeight.Medium,
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(colorFree),
-        ) {
-            if (userTok > 0) {
-                Box(
-                    modifier = Modifier
-                        .weight((userTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
-                        .height(8.dp)
-                        .background(colorUser),
-                )
-            }
-            if (asstTok > 0) {
-                Box(
-                    modifier = Modifier
-                        .weight((asstTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
-                        .height(8.dp)
-                        .background(colorAssistant),
-                )
-            }
-            if (toolTok > 0) {
-                Box(
-                    modifier = Modifier
-                        .weight((toolTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
-                        .height(8.dp)
-                        .background(colorTools),
-                )
-            }
-            if (freeTok > 0) {
-                Box(
-                    modifier = Modifier
-                        .weight((freeTok.toFloat() / maxWindow.toFloat()).coerceAtLeast(0.001f))
-                        .height(8.dp)
-                        .background(colorFree),
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)) {
-            UsageDetailRow(
-                color = colorUser,
-                label = stringResource(R.string.context_user_tokens),
-                tokens = userTok,
-                total = maxWindow,
-                locale = locale,
-            )
-            UsageDetailRow(
-                color = colorAssistant,
-                label = stringResource(R.string.context_assistant_tokens),
-                tokens = asstTok,
-                total = maxWindow,
-                locale = locale,
-            )
-            UsageDetailRow(
-                color = colorTools,
-                label = stringResource(R.string.context_tool_tokens),
-                tokens = toolTok,
-                total = maxWindow,
-                locale = locale,
-            )
-            UsageDetailRow(
-                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                label = stringResource(R.string.context_free_tokens),
-                tokens = freeTok,
-                total = maxWindow,
-                locale = locale,
-            )
-        }
-
-        if (usage.inputTokens != null || usage.outputTokens != null || usage.cachedTokens != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(MiuixTheme.colorScheme.dividerLine),
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-            ) {
-                usage.inputTokens?.let {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.context_input_tokens),
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                        Text(
-                            text = formatCompactTokenCount(it, locale),
-                            style = MiuixTheme.textStyles.body2,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MiuixTheme.colorScheme.onSurface,
-                        )
-                    }
+        Text(stringResource(R.string.context_current_title), style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.SemiBold)
+        Text(summary, style = MiuixTheme.textStyles.body2)
+        if (hasComposition && used != null) {
+            Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(freeColor)) {
+                categories.forEach { (_, amount, color) ->
+                    if (amount != null && amount > 0) Box(Modifier.weight(amount.toFloat()).height(10.dp).background(color))
                 }
-                usage.outputTokens?.let {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.context_output_tokens),
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                        Text(
-                            text = formatCompactTokenCount(it, locale),
-                            style = MiuixTheme.textStyles.body2,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MiuixTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-                usage.cachedTokens?.let { cached ->
-                    Column {
-                        Text(
-                            text = stringResource(R.string.context_cached_tokens),
-                            style = MiuixTheme.textStyles.footnote1,
-                            color = StatusSuccess,
-                        )
-                        val cachePctStr = usage.cachePercent?.let { " (${it.toInt()}%)" } ?: ""
-                        Text(
-                            text = "${formatCompactTokenCount(cached, locale)}$cachePctStr",
-                            style = MiuixTheme.textStyles.body2,
-                            fontWeight = FontWeight.SemiBold,
-                            color = StatusSuccess,
-                        )
-                    }
-                }
+                if (free != null && free > 0) Box(Modifier.weight(free.toFloat()).height(10.dp).background(freeColor))
             }
+            categories.forEach { (label, amount, color) ->
+                UsageDetailRow(color, stringResource(label), amount ?: 0, used, locale)
+            }
+            if (free != null) UsageDetailRow(MiuixTheme.colorScheme.onSurfaceVariantActions,
+                stringResource(R.string.context_free_tokens), free, limit ?: 0, locale)
+            Text(stringResource(R.string.context_composition_estimated), style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        } else {
+            Text(stringResource(R.string.context_usage_after_response), style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(MiuixTheme.colorScheme.dividerLine))
+        Text(stringResource(R.string.context_chat_totals_title), style = MiuixTheme.textStyles.body2,
+            fontWeight = FontWeight.SemiBold)
+        TokenMetricRow(stringResource(R.string.context_request_count), usage.requestCount.toLong(), locale)
+        TokenMetricRow(stringResource(R.string.context_measured_requests), usage.measuredRequests.toLong(), locale)
+        TokenMetricRow(stringResource(R.string.context_failed_requests), usage.failedRequests.toLong(), locale)
+        TokenMetricRow(stringResource(R.string.context_compaction_requests), usage.compactionRequests.toLong(), locale)
+        TokenMetricRow(stringResource(R.string.context_input_tokens), usage.inputTokens, locale)
+        TokenMetricRow(stringResource(R.string.context_output_tokens), usage.outputTokens, locale)
+        TokenMetricRow(stringResource(R.string.context_reasoning_tokens), usage.reasoningTokens, locale)
+        TokenMetricRow(stringResource(R.string.context_cached_tokens), usage.cachedTokens, locale)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween) {
+            Text(stringResource(R.string.context_cache_percent), style = MiuixTheme.textStyles.body2)
+            Text(usage.cachePercent?.let {
+                java.text.NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1 }.format(it) + "%"
+            } ?: "—", color = StatusSuccess, style = MiuixTheme.textStyles.body2)
+        }
+        Text(stringResource(R.string.context_cache_formula), style = MiuixTheme.textStyles.footnote1,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        if (usage.usageIncomplete || usage.cacheIncomplete) Text(stringResource(R.string.context_totals_incomplete),
+            style = MiuixTheme.textStyles.footnote1, color = StatusWarning)
     }
 }
 
 @Composable
-private fun UsageDetailRow(
-    color: Color,
-    label: String,
-    tokens: Int,
-    total: Int,
-    locale: Locale,
-) {
-    val pct = if (total > 0) (tokens.toFloat() / total.toFloat()) * 100f else 0f
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(color),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurface,
-            )
-        }
-        val pctFormatted = String.format(Locale.US, "%.1f", pct)
-        Text(
-            text = "${formatCompactTokenCount(tokens, locale)} ($pctFormatted%)",
-            style = MiuixTheme.textStyles.footnote1,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        )
+private fun TokenMetricRow(label: String, value: Long?, locale: Locale) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween) {
+        Text(label, modifier = Modifier.weight(1f).padding(end = 8.dp), style = MiuixTheme.textStyles.body2)
+        Text(value?.let { java.text.NumberFormat.getIntegerInstance(locale).format(it) } ?: "—",
+            style = MiuixTheme.textStyles.body2, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun UsageDetailRow(color: Color, label: String, tokens: Int, total: Int, locale: Locale) {
+    val pct = if (total > 0) 100.0 * tokens / total else 0.0
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text(label, modifier = Modifier.weight(1f).padding(end = 8.dp), style = MiuixTheme.textStyles.footnote1)
+        val percent = java.text.NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1 }.format(pct)
+        Text("${java.text.NumberFormat.getIntegerInstance(locale).format(tokens)} · $percent%",
+            style = MiuixTheme.textStyles.footnote1, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
     }
 }
 

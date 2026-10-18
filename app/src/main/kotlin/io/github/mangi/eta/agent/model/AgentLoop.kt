@@ -33,6 +33,7 @@ internal class AgentLoop(
     private val purpose: ProviderRequestPurpose = ProviderRequestPurpose.CHAT,
     private val roleplayContext: RoleplayRunContext? = null,
     initialSupplementIndex: Int = 0,
+    private val taskStateProvider: (() -> AgentTaskState)? = null,
 ) {
     data class Result(
         val content: String,
@@ -95,6 +96,15 @@ internal class AgentLoop(
                 toolsForRound?.invoke() ?: tools
             } else {
                 JSONArray()
+            }
+            if (!AnthropicEphemeralState.hasPendingToolResponse(messages)) {
+                for (index in 0 until systemCount) {
+                    val message = messages.getJSONObject(index)
+                    if (message.optBoolean("_eta_protected_tasks")) {
+                        val saved = taskStateProvider?.invoke() ?: continue
+                        message.put("content", saved.prompt())
+                    }
+                }
             }
             precedingTools = roundTools
             toolCallValidator = AgentToolCallValidator(roundTools)

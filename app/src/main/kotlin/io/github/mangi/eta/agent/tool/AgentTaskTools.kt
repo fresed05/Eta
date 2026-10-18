@@ -1,95 +1,94 @@
 package io.github.mangi.eta.agent.tool
 
+import io.github.mangi.eta.agent.model.AgentTaskItem
+import io.github.mangi.eta.agent.model.AgentTaskState
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.ConcurrentHashMap
 
 internal object AgentTaskTools {
-    data class TaskItem(
-        val id: String,
-        val content: String,
-        val status: String,
-    )
+    private val tasksByRun = mutableMapOf<String, AgentTaskState>()
+    private val statuses = setOf("pending", "in_progress", "completed", "cancelled")
+    data class Outcome(val state: AgentTaskState, val result: JSONObject)
 
-    private val tasksByRun = ConcurrentHashMap<String, MutableList<TaskItem>>()
-
-    fun execute(runId: String, args: JSONObject): JSONObject {
-        val tasks = tasksByRun.computeIfAbsent(runId) { mutableListOf() }
+    /** Validate the whole update before replacing anything. No partial or silent updates. */
+    fun reduce(previous: AgentTaskState, args: JSONObject): Outcome = try {
         val action = args.optString("action", if (args.has("todos")) "write" else "list")
-
+        var todos = previous.todos
+        var plan = previous.plan
+        var originals = previous.originalTodos
+        val newPlan = args.optBoolean("new_plan", false)
+        if (newPlan) require(action == "write") { "new_plan requires action=write" }
         when (action) {
             "write" -> {
-                val array = args.optJSONArray("todos")
-                if (array != null) {
-                    tasks.clear()
-                    for (i in 0 until array.length()) {
-                        val item = array.optJSONObject(i) ?: continue
-                        val id = item.optString("id").ifBlank { (i + 1).toString() }
-                        val content = item.optString("content").ifBlank { item.optString("title") }
-                        val status = item.optString("status", "pending")
-                        if (content.isNotBlank()) {
-                            tasks.add(TaskItem(id, content, status))
-                        }
-                    }
+                val array = args.optJSONArray("todos") ?: error("todos is required")
+                todos = (0 until array.length()).map { i ->
+                    val item = array.getJSONObject(i)
+                    task(item.optString("id").ifBlank { (i + 1).toString() }, item.getString("content"), item.optString("status", "pending"))
                 }
+                require(todos.map { it.id }.distinct().size == todos.size) { "Task IDs must be unique" }
             }
             "add" -> {
-                val content = args.optString("content").ifBlank { args.optString("title") }
-                if (content.isNotBlank()) {
-                    val id = args.optString("id").ifBlank { (tasks.size + 1).toString() }
-                    val status = args.optString("status", "pending")
-                    tasks.add(TaskItem(id, content, status))
+                val id = args.optString("id").ifBlank {
+                    generateSequence(1) { it + 1 }.map(Int::toString).first { candidate -> todos.none { it.id == candidate } }
                 }
+                require(todos.none { it.id == id }) { "Task ID already exists: $id" }
+                todos = todos + task(id, args.getString("content"), args.optString("status", "pending"))
             }
             "update" -> {
-                val id = args.optString("id")
-                val newStatus = args.optString("status")
-                val newContent = args.optString("content").ifBlank { args.optString("title") }
-                val index = tasks.indexOfFirst { it.id == id }
-                if (index >= 0) {
-                    val current = tasks[index]
-                    tasks[index] = current.copy(
-                        status = if (newStatus.isNotBlank()) newStatus else current.status,
-                        content = if (newContent.isNotBlank()) newContent else current.content,
-                    )
-                }
+                val id = args.getString("id")
+                require(todos.any { it.id == id }) { "Unknown task ID: $id" }
+                todos = todos.map { current -> if (current.id != id) current else task(id,
+                    if (args.has("content")) args.getString("content") else current.content,
+                    if (args.has("status")) args.getString("status") else current.status) }
             }
-            "clear" -> {
-                tasks.clear()
-            }
+            "clear" -> { todos = emptyList(); plan = ""; originals = emptyList() }
             "list" -> Unit
+            else -> error("Unknown action: $action")
         }
-
-        val completed = tasks.count { it.status == "completed" }
-        val inProgress = tasks.count { it.status == "in_progress" }
-        val pending = tasks.count { it.status == "pending" }
-        val cancelled = tasks.count { it.status == "cancelled" }
-
-        val outArray = JSONArray()
-        tasks.forEach { t ->
-            outArray.put(
-                JSONObject()
-                    .put("id", t.id)
-                    .put("content", t.content)
-                    .put("status", t.status),
-            )
+        if (args.has("plan")) {
+            val supplied = args.getString("plan")
+            require(supplied.length <= 32_000) { "Plan exceeds 32000 characters" }
+            require(plan.isBlank() || supplied == plan || newPlan) { "Original plan is immutable; use new_plan=true to replace it explicitly" }
+            plan = supplied
         }
-
-        val summary = "$completed/${tasks.size} выполнено" +
-            if (inProgress > 0) ", $inProgress в процессе" else ""
-
-        return JSONObject()
-            .put("ok", true)
-            .put("total", tasks.size)
-            .put("completed", completed)
-            .put("in_progress", inProgress)
-            .put("pending", pending)
-            .put("cancelled", cancelled)
-            .put("summary", summary)
-            .put("todos", outArray)
+        require(todos.size <= 200) { "At most 200 tasks are supported" }
+        if (newPlan || originals.isEmpty()) originals = todos
+        if (newPlan && !args.has("plan")) plan = ""
+        val changed = plan != previous.plan || todos != previous.todos || originals != previous.originalTodos
+        val state = AgentTaskState(previous.revision + if (changed || newPlan) 1 else 0, plan, originals, todos)
+        require(state.encode().toByteArray(Charsets.UTF_8).size <= 256_000) { "Task state exceeds the 256 KB transport budget" }
+        Outcome(state, result(state))
+    } catch (failure: Exception) {
+        Outcome(previous, JSONObject().put("ok", false).put("code", "INVALID_TASK_UPDATE").put("message", failure.message))
     }
 
-    fun clearRun(runId: String) {
-        tasksByRun.remove(runId)
+    @Synchronized
+    fun execute(runId: String, args: JSONObject): JSONObject {
+        val outcome = reduce(tasksByRun[runId] ?: AgentTaskState(), args)
+        tasksByRun[runId] = outcome.state
+        return outcome.result
+    }
+
+    @Synchronized
+    fun clearRun(runId: String) { tasksByRun.remove(runId) }
+
+    private fun task(id: String, content: String, status: String): AgentTaskItem {
+        require(id.isNotBlank() && id.length <= 100) { "Task ID must have 1–100 characters" }
+        require(content.isNotBlank() && content.length <= 8000) { "Task content must have 1–8000 characters" }
+        require(status in statuses) { "Invalid task status: $status" }
+        return AgentTaskItem(id, content, status)
+    }
+
+    private fun result(state: AgentTaskState): JSONObject {
+        val completed = state.todos.count { it.status == "completed" }
+        return JSONObject().put("ok", true).put("revision", state.revision).put("plan", state.plan)
+            .put("total", state.todos.size).put("completed", completed)
+            .put("in_progress", state.todos.count { it.status == "in_progress" })
+            .put("pending", state.todos.count { it.status == "pending" })
+            .put("cancelled", state.todos.count { it.status == "cancelled" })
+            .put("summary", "$completed/${state.todos.size}")
+            .put("todos", JSONArray().also { array -> state.todos.forEach {
+                array.put(JSONObject().put("id", it.id).put("content", it.content).put("status", it.status))
+            } })
     }
 }

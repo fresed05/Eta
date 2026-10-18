@@ -163,7 +163,18 @@ internal object AgentPromptBuilder {
         }
         roleplayContext?.personaMessage()?.let(messages::put)
         buildMemorySystemMessage(memoryContext, writable = roleplayContext == null)?.let(messages::put)
-        buildSkillSystemMessage(skillContext)?.let(messages::put)
+        buildSkillSystemMessage(skillContext)?.put("_eta_context_category", "tools_skills")?.let(messages::put)
+        if (config.planningMode) messages.put(systemMessage(
+            "Planning mode is enabled by the user. Before any implementation or side-effecting action, " +
+                "create a detailed, actionable plan in the user's language with todo_write(action=write, plan=..., todos=...). " +
+                "Include scope, dependencies, verification and risks. If investigation is needed, put it first in the saved plan. " +
+                "Then execute the saved steps, marking only verified work completed; do not stop after planning. " +
+                "If continuing an existing unfinished plan, resume it rather than replacing it. " +
+                "For a genuinely new task use new_plan=true. This explicit mode overrides the normal preference to skip a preliminary plan."
+        ))
+        AgentTaskState.decode(config.taskStateJson)?.let { tasks ->
+            messages.put(systemMessage(tasks.prompt()).put("_eta_protected_tasks", true).put("_eta_context_category", "agent"))
+        }
         return messages
     }
 

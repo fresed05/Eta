@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material.icons.rounded.FormatListBulleted
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
@@ -110,6 +111,8 @@ internal fun AgentChatInputBar(
     contextUsage: AgentContextUsageUi,
     showContextUsage: Boolean,
     isStreaming: Boolean,
+    planningMode: Boolean,
+    onPlanningModeChange: (Boolean) -> Unit,
     reasoningEffort: ReasoningEffort,
     availableReasoningEfforts: List<ReasoningEffort>,
     pendingImages: List<PendingImageUi>,
@@ -328,6 +331,23 @@ internal fun AgentChatInputBar(
 
                         Spacer(modifier = Modifier.weight(1f))
 
+                        IconButton(
+                            onClick = { onPlanningModeChange(!planningMode) },
+                            enabled = !isStreaming && !isCompacting,
+                            minWidth = ChatInputActionSize,
+                            minHeight = ChatInputActionSize,
+                            modifier = Modifier.background(
+                                if (planningMode) MiuixTheme.colorScheme.primaryContainer else Color.Transparent,
+                                RoundedCornerShape(10.dp),
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.FormatListBulleted,
+                                contentDescription = stringResource(if (planningMode) R.string.planning_mode_on else R.string.planning_mode_off),
+                                tint = if (planningMode) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                modifier = Modifier.size(ChatInputActionIconSize),
+                            )
+                        }
                         if (showContextUsage) {
                             AgentContextUsageButton(usage = contextUsage, onCompact = onCompactContext, canCompact = canCompactContext && !isStreaming)
 

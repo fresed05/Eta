@@ -525,7 +525,10 @@ internal object AnthropicMessagesProvider : AgentProviderClient {
                 input + (usage.firstInt("cache_read_input_tokens") ?: 0) +
                     (usage.firstInt("cache_creation_input_tokens") ?: 0)
             },
-            inputTokens = usage.firstInt("input_tokens"),
+            inputTokens = usage.firstInt("input_tokens")?.let { input ->
+                input + (usage.firstInt("cache_read_input_tokens") ?: 0) +
+                    (usage.firstInt("cache_creation_input_tokens") ?: 0)
+            },
             outputTokens = usage.firstInt("output_tokens"),
             reasoningTokens = usage.firstInt("thinking_output_tokens"),
             cachedTokens = usage.firstInt("cache_read_input_tokens")

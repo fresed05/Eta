@@ -334,6 +334,7 @@ fun AgentAppRoot(
                         conversationKey = agentState.conversationPaneState.selectedConversationId,
                         onAction = { action ->
                             when (action) {
+                                is AgentHomeAction.PlanningModeChanged -> agentState.updatePlanningMode(action.enabled)
                                 is AgentHomeAction.ReasoningEffortChanged ->
                                     agentState.updateReasoningEffort(action.effort)
                                 AgentHomeAction.CompactContext -> agentState.compactCurrentContext()

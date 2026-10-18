@@ -102,6 +102,7 @@ internal interface ConversationDao : ChunkedTextDao {
     suspend fun restoreCheckpoint(row: ConversationContextCheckpointEntity) = row.copy(
         historyJson = restoreText("conversation_context_checkpoints", row.conversationId, "history", row.historyJson),
         journalJson = restoreText("conversation_context_checkpoints", row.conversationId, "journal", row.journalJson),
+        sessionJson = restoreText("conversation_context_checkpoints", row.conversationId, "session", row.sessionJson),
     )
 
     @Query("SELECT * FROM conversation_state WHERE id = :id")
@@ -148,12 +149,13 @@ internal interface ConversationDao : ChunkedTextDao {
             insertContextCheckpointRow(row.copy(
                 historyJson = storeText("conversation_context_checkpoints", row.conversationId, "history", row.historyJson),
                 journalJson = storeText("conversation_context_checkpoints", row.conversationId, "journal", row.journalJson),
+                sessionJson = storeText("conversation_context_checkpoints", row.conversationId, "session", row.sessionJson),
             ))
         }
     }
 
     @Transaction
-    suspend fun updateContextCheckpoint(conversationId: String, historyJson: String?, journalJson: String?) {
+    suspend fun updateContextCheckpoint(conversationId: String, historyJson: String?, journalJson: String?, sessionJson: String? = null) {
         val previous = contextCheckpointRow(conversationId)
             ?: ConversationContextCheckpointEntity(conversationId, "[]")
         insertContextCheckpointRow(previous.copy(
@@ -161,6 +163,8 @@ internal interface ConversationDao : ChunkedTextDao {
                 ?: previous.historyJson,
             journalJson = journalJson?.let { storeText("conversation_context_checkpoints", conversationId, "journal", it) }
                 ?: previous.journalJson,
+            sessionJson = sessionJson?.let { storeText("conversation_context_checkpoints", conversationId, "session", it) }
+                ?: previous.sessionJson,
         ))
     }
 
