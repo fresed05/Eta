@@ -1,5 +1,7 @@
 package io.github.mangi.eta.ui.components
 
+import java.util.Locale
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -488,7 +490,7 @@ private fun ContextUsageTooltipDetails(
                     Column {
                         Text(
                             text = stringResource(R.string.context_input_tokens),
-                            style = MiuixTheme.textStyles.footnote,
+                            style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         Text(
@@ -503,7 +505,7 @@ private fun ContextUsageTooltipDetails(
                     Column {
                         Text(
                             text = stringResource(R.string.context_output_tokens),
-                            style = MiuixTheme.textStyles.footnote,
+                            style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                         Text(
@@ -518,7 +520,7 @@ private fun ContextUsageTooltipDetails(
                     Column {
                         Text(
                             text = stringResource(R.string.context_cached_tokens),
-                            style = MiuixTheme.textStyles.footnote,
+                            style = MiuixTheme.textStyles.footnote1,
                             color = StatusSuccess,
                         )
                         val cachePctStr = usage.cachePercent?.let { " (${it.toInt()}%)" } ?: ""
@@ -559,14 +561,14 @@ private fun UsageDetailRow(
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = label,
-                style = MiuixTheme.textStyles.footnote,
+                style = MiuixTheme.textStyles.footnote1,
                 color = MiuixTheme.colorScheme.onSurface,
             )
         }
         val pctFormatted = String.format(Locale.US, "%.1f", pct)
         Text(
             text = "${formatCompactTokenCount(tokens, locale)} ($pctFormatted%)",
-            style = MiuixTheme.textStyles.footnote,
+            style = MiuixTheme.textStyles.footnote1,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
     }

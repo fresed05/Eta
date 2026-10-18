@@ -52,9 +52,9 @@ import androidx.compose.ui.unit.sp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.ui.model.AgentChatMessageUi
 import io.github.mangi.eta.ui.model.ToolActivityMessageUi
-import io.github.mangi.eta.ui.theme.StatusError
-import io.github.mangi.eta.ui.theme.StatusSuccess
-import io.github.mangi.eta.ui.theme.StatusWarning
+import io.github.mangi.eta.ui.components.StatusError
+import io.github.mangi.eta.ui.components.StatusSuccess
+import io.github.mangi.eta.ui.components.StatusWarning
 import org.json.JSONArray
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Icon
@@ -226,7 +226,7 @@ internal fun AgentActiveTodoPanel(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "${todoList.completed}/${todoList.total}",
-                            style = MiuixTheme.textStyles.footnote,
+                            style = MiuixTheme.textStyles.footnote1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantActions,
                         )
                     }
@@ -234,7 +234,7 @@ internal fun AgentActiveTodoPanel(
                     if (!isExpanded && activeItem != null) {
                         Text(
                             text = "▶ ${activeItem.content}",
-                            style = MiuixTheme.textStyles.footnote,
+                            style = MiuixTheme.textStyles.footnote1,
                             color = if (activeItem.status == "in_progress") MiuixTheme.colorScheme.primary
                             else MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             maxLines = 1,
@@ -243,7 +243,7 @@ internal fun AgentActiveTodoPanel(
                     } else if (!isExpanded && todoList.completed == todoList.total) {
                         Text(
                             text = stringResource(R.string.todo_panel_all_done),
-                            style = MiuixTheme.textStyles.footnote,
+                            style = MiuixTheme.textStyles.footnote1,
                             color = StatusSuccess,
                         )
                     }
